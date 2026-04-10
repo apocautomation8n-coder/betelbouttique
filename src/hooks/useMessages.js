@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient'
 import toast from 'react-hot-toast'
 
 const N8N_WEBHOOK = import.meta.env.VITE_N8N_WEBHOOK
+const REOPEN_WEBHOOK = import.meta.env.VITE_REOPEN_CONVERSATION_WEBHOOK
 
 export function normalizePhone(phone) {
   if (!phone) return ''
@@ -250,6 +251,29 @@ export async function sendOutboundMessage({ phone, agentSlug, agentId, contactId
   }
 
   return data
+}
+
+export async function reopenConversation(phone, agentSlug) {
+  try {
+    const res = await fetch(REOPEN_WEBHOOK, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        phone,
+        agent_slug: agentSlug,
+        action: 'open_24h_window'
+      }),
+    })
+    
+    if (!res.ok) throw new Error('Webhook error')
+    
+    toast.success('Solicitud de ventana 24h enviada')
+    return { success: true }
+  } catch (err) {
+    console.error('Reopen webhook error:', err)
+    toast.error('Error al solicitar apertura de ventana')
+    return { success: false, error: err }
+  }
 }
 
 export async function deleteConversationByContact(agentId, contactId) {

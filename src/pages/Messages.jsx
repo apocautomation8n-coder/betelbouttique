@@ -148,6 +148,13 @@ export default function Messages() {
                   className="w-full pl-10 pr-4 py-2 bg-primary-50 border border-primary-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-600/20"
                 />
               </div>
+              <button
+                onClick={() => setShowLabelManager(true)}
+                className="p-2 text-primary-400 hover:text-primary-600 hover:bg-primary-100 rounded-xl transition-all"
+                title="Gestionar Etiquetas"
+              >
+                <Tag size={18} />
+              </button>
             </div>
 
             {/* Labels Filter */}
@@ -217,6 +224,8 @@ export default function Messages() {
           <Button onClick={handleAddContact} className="w-full mt-4">INICIAR CHAT</Button>
         </div>
       </Modal>
+
+      <LabelManager isOpen={showLabelManager} onClose={() => setShowLabelManager(false)} />
     </div>
   )
 }

@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
-import { useMessages, sendOutboundMessage, uploadAudio } from '../../hooks/useMessages'
+import { useMessages, sendOutboundMessage, uploadAudio, reopenConversation } from '../../hooks/useMessages'
 import { useRealtime } from '../../hooks/useRealtime'
 import MessageBubble from './MessageBubble'
 import MessageInput from './MessageInput'
 import Toggle from '../ui/Toggle'
-import { Bot, User, Phone, MoreVertical } from 'lucide-react'
+import { Bot, User, Phone, MoreVertical, Zap } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export default function ChatWindow({ agent, contact, onToggleBot }) {
@@ -96,6 +96,14 @@ export default function ChatWindow({ agent, contact, onToggleBot }) {
             onChange={(val) => onToggleBot(contact.id, val)}
             label="Asistente IA"
           />
+          <button
+            onClick={() => reopenConversation(contact.phone, agent.slug)}
+            className="flex items-center gap-2 px-3 py-1.5 bg-accent-500 hover:bg-accent-600 text-white rounded-lg transition-all text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-accent-500/20 active:scale-95"
+            title="Abrir Ventana 24hs (Plantilla)"
+          >
+            <Zap size={14} fill="currentColor" />
+            Ventana 24h
+          </button>
         </div>
       </header>
 
