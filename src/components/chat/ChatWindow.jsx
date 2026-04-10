@@ -65,7 +65,6 @@ export default function ChatWindow({ agent, contact, onToggleBot }) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center bg-primary-50/50 p-8 text-center text-primary-400">
         <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm border border-primary-100">
-          <MessageInput onSend={() => {}} onSendAudio={() => {}} disabled />
           <Bot size={48} className="text-primary-200" />
         </div>
         <h2 className="font-title text-2xl uppercase tracking-widest text-primary-500">Betel Messenger</h2>
