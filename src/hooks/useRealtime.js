@@ -3,15 +3,18 @@ import { supabase } from '../lib/supabaseClient'
 
 export function useRealtime(table, filter, callback) {
   useEffect(() => {
+    // Generate a unique ID to avoid channel collisions
+    const subscriptionId = Math.random().toString(36).substring(7)
+    
     const channel = supabase
-      .channel(`realtime-${table}`)
+      .channel(`realtime-${table}-${subscriptionId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: table,
-          filter: filter
+          filter: filter || undefined
         },
         (payload) => {
           callback(payload)
