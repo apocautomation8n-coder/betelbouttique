@@ -363,3 +363,24 @@ export async function mergeContacts(targetId, sourceId) {
   const { error: delErr } = await supabase.from('contacts').delete().eq('id', sourceId)
   return { success: !delErr }
 }
+
+export async function uploadAudio(blob) {
+  const fileName = `audio_${Date.now()}.webm`
+  const { data, error } = await supabase.storage
+    .from('audio-messages')
+    .upload(fileName, blob, {
+      contentType: 'audio/webm',
+      cacheControl: '3600',
+    })
+
+  if (error) {
+    toast.error('Error subiendo audio')
+    throw error
+  }
+
+  const { data: { publicUrl } } = supabase.storage
+    .from('audio-messages')
+    .getPublicUrl(data.path)
+
+  return publicUrl
+}
