@@ -148,7 +148,6 @@ export default function Messages() {
                   className="w-full pl-10 pr-4 py-2 bg-primary-50 border border-primary-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-600/20"
                 />
               </div>
-              </div>
             </div>
 
             {/* Labels Filter */}
