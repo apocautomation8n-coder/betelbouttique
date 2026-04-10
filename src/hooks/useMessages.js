@@ -1,0 +1,365 @@
+import { useState, useEffect, useCallback } from 'react'
+import { supabase } from '../lib/supabaseClient'
+import toast from 'react-hot-toast'
+
+const N8N_WEBHOOK = import.meta.env.VITE_N8N_WEBHOOK
+
+export function normalizePhone(phone) {
+  if (!phone) return ''
+  let clean = phone.toString().replace(/[^\d+]/g, '')
+  if (clean && !clean.startsWith('+')) {
+    clean = '+' + clean
+  }
+  if (clean.startsWith('+549')) {
+    return '+54' + clean.slice(4)
+  }
+  return clean
+}
+
+export function getPhoneVariants(phone) {
+  let clean = phone.toString().replace(/[^\d+]/g, '')
+  if (clean && !clean.startsWith('+')) {
+    clean = '+' + clean
+  }
+  if (!clean.startsWith('+54')) return [clean]
+  if (clean.startsWith('+549')) {
+    return [clean, '+54' + clean.slice(4)]
+  } else {
+    return [clean, '+549' + clean.slice(3)]
+  }
+}
+
+export function useAgents() {
+  const [agents, setAgents] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchAgents = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('agents')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at')
+    if (error) {
+      toast.error('Error cargando agentes')
+    } else {
+      setAgents(data)
+    }
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { fetchAgents() }, [fetchAgents])
+
+  const toggleBot = async (agentId, enabled) => {
+    const { error } = await supabase
+      .from('agents')
+      .update({ bot_enabled: enabled })
+      .eq('id', agentId)
+    if (error) {
+      toast.error('Error actualizando estado del bot')
+    } else {
+      setAgents(prev => prev.map(a => a.id === agentId ? { ...a, bot_enabled: enabled } : a))
+      toast.success(enabled ? 'Bot activado' : 'Bot desactivado')
+    }
+  }
+
+  const addAgent = async (name, slug) => {
+    const { data, error } = await supabase
+      .from('agents')
+      .insert({ name, slug })
+      .select()
+      .single()
+    if (error) {
+      toast.error('Error creando agente')
+    } else {
+      setAgents(prev => [...prev, data])
+      toast.success('Agente creado')
+    }
+    return { data, error }
+  }
+
+  return { agents, loading, toggleBot, addAgent, refetch: fetchAgents }
+}
+
+export function useConversations(agentId) {
+  const [conversations, setConversations] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchConversations = useCallback(async () => {
+    if (!agentId) return
+    setLoading(true)
+
+    const { data: msgs, error } = await supabase
+      .from('messages')
+      .select(`
+        contact_id,
+        content,
+        direction,
+        media_type,
+        timestamp,
+        is_read,
+        contacts (
+          id, 
+          name, 
+          phone, 
+          bot_enabled,
+          contact_labels (
+            labels (id, name, color)
+          )
+        )
+      `)
+      .eq('agent_id', agentId)
+      .order('timestamp', { ascending: false })
+
+    if (error) {
+      console.error(error)
+      setLoading(false)
+      return
+    }
+
+    const contactMap = {}
+    msgs.forEach(msg => {
+      const cid = msg.contact_id
+      if (!contactMap[cid]) {
+        const flatLabels = msg.contacts?.contact_labels?.map(cl => cl.labels).filter(Boolean) || []
+        contactMap[cid] = {
+          contact: { ...msg.contacts, labels: flatLabels },
+          lastMessage: msg.content || (msg.media_type === 'audio' ? '🎵 Audio' : ''),
+          lastDirection: msg.direction,
+          lastTimestamp: msg.timestamp,
+          unreadCount: 0,
+        }
+      }
+      if (!msg.is_read && msg.direction === 'inbound') {
+        contactMap[cid].unreadCount++
+      }
+    })
+
+    const sorted = Object.values(contactMap).sort(
+      (a, b) => new Date(b.lastTimestamp) - new Date(a.lastTimestamp)
+    )
+    setConversations(sorted)
+    setLoading(false)
+  }, [agentId])
+
+  useEffect(() => { fetchConversations() }, [fetchConversations])
+
+  const toggleContactBot = async (contactId, enabled) => {
+    const { error } = await supabase
+      .from('contacts')
+      .update({ bot_enabled: enabled })
+      .eq('id', contactId)
+    if (error) {
+      toast.error('Error actualizando estado del bot')
+    } else {
+      setConversations(prev => prev.map(c => 
+        c.contact.id === contactId ? { ...c, contact: { ...c.contact, bot_enabled: enabled } } : c
+      ))
+      toast.success(enabled ? 'Bot activado' : 'Bot desactivado')
+    }
+  }
+
+  const markAsReadLocally = useCallback((contactId) => {
+    setConversations(prev => prev.map(c => 
+      c.contact.id === contactId ? { ...c, unreadCount: 0 } : c
+    ))
+  }, [])
+
+  return { conversations, loading, refetch: fetchConversations, toggleContactBot, markAsReadLocally }
+}
+
+export function useMessages(agentId, contactId) {
+  const [messages, setMessages] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchMessages = useCallback(async () => {
+    if (!agentId || !contactId) return
+    setLoading(true)
+
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('agent_id', agentId)
+      .eq('contact_id', contactId)
+      .order('timestamp', { ascending: true })
+
+    if (error) {
+      console.error(error)
+    } else {
+      setMessages(data)
+    }
+    setLoading(false)
+
+    await supabase
+      .from('messages')
+      .update({ is_read: true })
+      .eq('agent_id', agentId)
+      .eq('contact_id', contactId)
+      .eq('direction', 'inbound')
+      .eq('is_read', false)
+  }, [agentId, contactId])
+
+  useEffect(() => { fetchMessages() }, [fetchMessages])
+
+  const addMessage = (msg) => {
+    setMessages(prev => {
+      if (prev.some(m => m.id === msg.id)) return prev
+      return [...prev, msg]
+    })
+  }
+
+  return { messages, loading, refetch: fetchMessages, addMessage }
+}
+
+export async function sendOutboundMessage({ phone, agentSlug, agentId, contactId, contactName, message, mediaUrl, mediaType }) {
+  try {
+    await fetch(N8N_WEBHOOK, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        phone,
+        agent_slug: agentSlug,
+        contact_name: contactName || '',
+        message: message || '',
+        media_url: mediaUrl || null,
+        media_type: mediaType || 'text',
+      }),
+    })
+  } catch (err) {
+    console.error('Webhook error:', err)
+    toast.error('Error enviando al webhook')
+    throw err
+  }
+
+  const { data, error } = await supabase
+    .from('messages')
+    .insert({
+      agent_id: agentId,
+      contact_id: contactId,
+      direction: 'outbound',
+      content: message || '',
+      media_url: mediaUrl || null,
+      media_type: mediaType || 'text',
+      is_read: true,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    toast.error('Error guardando mensaje')
+    throw error
+  }
+
+  return data
+}
+
+export async function deleteConversationByContact(agentId, contactId) {
+  const { error: msgError } = await supabase
+    .from('messages')
+    .delete()
+    .eq('agent_id', agentId)
+    .eq('contact_id', contactId)
+
+  if (msgError) {
+    toast.error('Error al borrar la conversación')
+    throw msgError
+  }
+
+  toast.success('Conversación borrada')
+}
+
+export function useContacts() {
+  const [contacts, setContacts] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchContacts = useCallback(async () => {
+    setLoading(true)
+    const { data, error } = await supabase
+      .from('contacts')
+      .select('*')
+      .order('name', { ascending: true })
+    
+    if (error) {
+      console.error('Error fetching contacts:', error)
+    } else {
+      setContacts(data)
+    }
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { fetchContacts() }, [fetchContacts])
+
+  return { contacts, loading, refetch: fetchContacts }
+}
+
+export function useLabels() {
+  const [labels, setLabels] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchLabels = useCallback(async () => {
+    setLoading(true)
+    const { data, error } = await supabase
+      .from('labels')
+      .select('*')
+      .order('name', { ascending: true })
+    if (error) {
+      console.error('Error fetching labels:', error)
+    } else {
+      setLabels(data)
+    }
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { fetchLabels() }, [fetchLabels])
+
+  const addLabel = async (name, color) => {
+    const { data, error } = await supabase
+      .from('labels')
+      .insert({ name, color })
+      .select()
+      .single()
+    if (!error) setLabels(prev => [...prev, data])
+    return { data, error }
+  }
+
+  const deleteLabel = async (id) => {
+    const { error } = await supabase.from('labels').delete().eq('id', id)
+    if (!error) setLabels(prev => prev.filter(l => l.id !== id))
+    return { error }
+  }
+
+  return { labels, loading, refetch: fetchLabels, addLabel, deleteLabel }
+}
+
+export async function addLabelToContact(contactId, labelId) {
+  const { error } = await supabase
+    .from('contact_labels')
+    .insert({ contact_id: contactId, label_id: labelId })
+  return { error }
+}
+
+export async function removeLabelFromContact(contactId, labelId) {
+  const { error } = await supabase
+    .from('contact_labels')
+    .delete()
+    .eq('contact_id', contactId)
+    .eq('label_id', labelId)
+  return { error }
+}
+
+export async function mergeContacts(targetId, sourceId) {
+  const { error: msgErr } = await supabase
+    .from('messages')
+    .update({ contact_id: targetId })
+    .eq('contact_id', sourceId)
+  if (msgErr) console.error('Error merging messages:', msgErr)
+
+  const { data: sourceLabels } = await supabase.from('contact_labels').select('label_id').eq('contact_id', sourceId)
+  if (sourceLabels?.length) {
+    for (const l of sourceLabels) {
+      await supabase.from('contact_labels').insert({ contact_id: targetId, label_id: l.label_id })
+    }
+  }
+
+  const { error: delErr } = await supabase.from('contacts').delete().eq('id', sourceId)
+  return { success: !delErr }
+}
