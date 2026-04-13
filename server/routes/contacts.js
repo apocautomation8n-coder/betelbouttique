@@ -99,4 +99,37 @@ router.post('/', async (req, res) => {
   }
 })
 
+// POST /api/contacts/toggle-bot
+router.post('/toggle-bot', async (req, res) => {
+  try {
+    const { phone, bot_enabled } = laxParse(req.body)
+    const normalizedPhone = normalizePhone(phone)
+    if (!normalizedPhone) return sendError(res, 'Phone is required', 400)
+    
+    if (typeof bot_enabled !== 'boolean' && bot_enabled !== 'true' && bot_enabled !== 'false') {
+      return sendError(res, 'bot_enabled must be a boolean', 400)
+    }
+
+    const isEnabled = bot_enabled === true || bot_enabled === 'true'
+
+    const { data, error } = await supabase
+      .from('contacts')
+      .update({ bot_enabled: isEnabled })
+      .eq('phone', normalizedPhone)
+      .select('id, phone, bot_enabled')
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return sendError(res, 'Contact not found', 404)
+      }
+      throw error
+    }
+
+    return sendSuccess(res, { contact: data })
+  } catch (err) {
+    return sendError(res, err)
+  }
+})
+
 export default router
