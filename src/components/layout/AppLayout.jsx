@@ -18,7 +18,7 @@ export default function AppLayout() {
   ]
 
   return (
-    <div className="flex h-screen bg-primary-100 overflow-hidden">
+    <div className="flex min-h-screen h-[100dvh] bg-primary-100 overflow-hidden">
       {/* Sidebar */}
       <aside className={`
         fixed inset-y-0 left-0 z-50 w-64 bg-primary-600 text-white transform transition-transform duration-300 ease-in-out

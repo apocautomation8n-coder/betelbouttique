@@ -8,7 +8,7 @@ import Modal from '../components/ui/Modal'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import LabelManager from '../components/chat/LabelManager'
-import { Search, Plus, Bot, PanelRightOpen, PanelRightClose, Tag, Settings } from 'lucide-react'
+import { Search, Plus, Tag, Settings } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 import toast from 'react-hot-toast'
 
@@ -33,6 +33,7 @@ export default function Messages() {
   const { conversations, loading: convsLoading, refetch, toggleContactBot, markAsReadLocally } = useConversations(activeAgent?.id)
 
   const currentContact = conversations.find(c => c.contact?.id === selectedContact?.id)?.contact || selectedContact
+  const hasActiveChat = Boolean(currentContact?.id)
 
   useRealtime('messages', null, () => {
     refetch()
@@ -87,7 +88,7 @@ export default function Messages() {
   return (
     <div className="h-full flex flex-col bg-white">
       {/* Agent Tabs */}
-      <div className="flex items-center justify-between px-6 py-2 border-b border-primary-100 bg-primary-50">
+      <div className="flex items-center justify-between px-3 sm:px-6 py-2 border-b border-primary-100 bg-primary-50">
         <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
           {agents.map(agent => (
             <button
@@ -119,7 +120,7 @@ export default function Messages() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowAddContact(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-xl shadow-lg shadow-primary-600/20 active:scale-95 transition-all text-[10px] font-bold uppercase tracking-widest"
+            className="flex items-center gap-0 sm:gap-2 px-3 sm:px-4 py-2 bg-primary-600 text-white rounded-xl shadow-lg shadow-primary-600/20 active:scale-95 transition-all text-[0px] sm:text-[10px] font-bold uppercase tracking-widest"
           >
             <Plus size={14} />
             Iniciar Conversación
@@ -127,6 +128,8 @@ export default function Messages() {
           <button
             onClick={() => setShowContactPanel(!showContactPanel)}
             className={`p-2 rounded-xl transition-all ${showContactPanel ? 'text-primary-600 bg-primary-100' : 'text-primary-400'}`}
+            disabled={!currentContact}
+            title="Detalle"
           >
             <Settings size={18} />
           </button>
@@ -136,7 +139,7 @@ export default function Messages() {
       {/* Main Content Area */}
       <div className="flex-1 flex min-h-0 overflow-hidden">
         {/* Sidebar: Chats */}
-        <div className="w-80 flex flex-col border-r border-primary-100 bg-white shrink-0">
+        <div className={`${hasActiveChat ? 'hidden sm:flex' : 'flex'} w-full sm:w-80 flex-col border-r border-primary-100 bg-white shrink-0`}>
           <div className="p-4 space-y-4">
             <div className="flex gap-2">
               <div className="relative flex-1">
@@ -185,26 +188,44 @@ export default function Messages() {
           <ConversationList
             conversations={filteredConversations}
             selectedContactId={currentContact?.id}
-            onSelect={setSelectedContact}
+            onSelect={(c) => {
+              setSelectedContact(c)
+              setShowContactPanel(false)
+              markAsReadLocally(c.id)
+            }}
             onDelete={() => {}}
             loading={convsLoading}
           />
         </div>
 
         {/* Chat Window */}
-        <ChatWindow 
-          agent={activeAgent} 
-          contact={currentContact} 
-          onToggleBot={toggleContactBot}
-        />
+        <div className={`${hasActiveChat ? 'flex' : 'hidden sm:flex'} flex-1 min-w-0`}>
+          <ChatWindow 
+            agent={activeAgent} 
+            contact={currentContact} 
+            onToggleBot={toggleContactBot}
+            onBack={() => setSelectedContact(null)}
+            onOpenDetails={() => setShowContactPanel(true)}
+          />
+        </div>
 
         {/* Contact Detail */}
         {showContactPanel && currentContact && (
-          <ContactPanel
-            contact={currentContact}
-            onClose={() => setShowContactPanel(false)}
-            onToggleBot={toggleContactBot}
-          />
+          <div className="fixed inset-0 z-50 sm:static sm:z-auto">
+            <button
+              type="button"
+              aria-label="Cerrar"
+              className="absolute inset-0 bg-black/30 sm:hidden"
+              onClick={() => setShowContactPanel(false)}
+            />
+            <div className="absolute right-0 top-0 bottom-0 w-full max-w-[420px] sm:static sm:w-80">
+              <ContactPanel
+                contact={currentContact}
+                onClose={() => setShowContactPanel(false)}
+                onToggleBot={toggleContactBot}
+              />
+            </div>
+          </div>
         )}
       </div>
 

@@ -4,12 +4,13 @@ import { useRealtime } from '../../hooks/useRealtime'
 import MessageBubble from './MessageBubble'
 import MessageInput from './MessageInput'
 import Toggle from '../ui/Toggle'
-import { Bot, User, Phone, MoreVertical, Zap } from 'lucide-react'
+import { ArrowLeft, Bot, Phone, MoreVertical, Zap } from 'lucide-react'
 import toast from 'react-hot-toast'
 
-export default function ChatWindow({ agent, contact, onToggleBot }) {
+export default function ChatWindow({ agent, contact, onToggleBot, onBack, onOpenDetails }) {
   const { messages, loading, refetch, addMessage } = useMessages(agent?.id, contact?.id)
   const scrollRef = useRef(null)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   // Realtime subscription for new messages in this specific conversation
   useRealtime('messages', `agent_id=eq.${agent?.id},contact_id=eq.${contact?.id}`, (payload) => {
@@ -23,6 +24,10 @@ export default function ChatWindow({ agent, contact, onToggleBot }) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
   }, [messages])
+
+  useEffect(() => {
+    setMenuOpen(false)
+  }, [contact?.id])
 
   const handleSendText = async (text) => {
     try {
@@ -74,43 +79,103 @@ export default function ChatWindow({ agent, contact, onToggleBot }) {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-primary-50/30 overflow-hidden">
+    <div className="w-full flex flex-col bg-primary-50/30 overflow-hidden">
       {/* Header */}
-      <header className="px-6 py-4 bg-white border-b border-primary-100 flex items-center justify-between shadow-sm z-10">
-        <div className="flex items-center gap-4">
+      <header className="px-3 sm:px-6 py-3 sm:py-4 bg-white border-b border-primary-100 flex items-center justify-between shadow-sm z-10">
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="sm:hidden p-2 -ml-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-all"
+              aria-label="Volver"
+              title="Volver"
+            >
+              <ArrowLeft size={18} />
+            </button>
+          )}
           <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-bold border border-primary-200">
             {(contact.name || '?')[0].toUpperCase()}
           </div>
-          <div>
-            <h3 className="font-bold text-primary-600 uppercase tracking-tight">{contact.name || 'Sin nombre'}</h3>
+          <div className="min-w-0">
+            <h3 className="font-bold text-primary-600 uppercase tracking-tight truncate">{contact.name || 'Sin nombre'}</h3>
             <div className="flex items-center gap-1.5 text-xs text-primary-400 font-mono">
               <Phone size={10} />
-              {contact.phone}
+              <span className="truncate">{contact.phone}</span>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-6">
-          <Toggle 
-            enabled={contact.bot_enabled} 
-            onChange={(val) => onToggleBot(contact.id, val)}
-            label="Asistente IA"
-          />
-          <button
-            onClick={() => reopenConversation(contact.phone, agent.slug)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-accent-500 hover:bg-accent-600 text-white rounded-lg transition-all text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-accent-500/20 active:scale-95"
-            title="Abrir Ventana 24hs (Plantilla)"
-          >
-            <Zap size={14} fill="currentColor" />
-            Ventana 24h
-          </button>
+        <div className="flex items-center gap-2 sm:gap-6 shrink-0">
+          <div className="hidden sm:flex items-center gap-6">
+            <Toggle 
+              enabled={contact.bot_enabled} 
+              onChange={(val) => onToggleBot(contact.id, val)}
+              label="Asistente IA"
+            />
+            <button
+              onClick={() => reopenConversation(contact.phone, agent.slug)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-accent-500 hover:bg-accent-600 text-white rounded-lg transition-all text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-accent-500/20 active:scale-95"
+              title="Abrir Ventana 24hs (Plantilla)"
+            >
+              <Zap size={14} fill="currentColor" />
+              Ventana 24h
+            </button>
+          </div>
+
+          <div className="sm:hidden relative">
+            <button
+              type="button"
+              onClick={() => setMenuOpen(v => !v)}
+              className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-all"
+              aria-label="Menu"
+              title="Menu"
+            >
+              <MoreVertical size={18} />
+            </button>
+
+            {menuOpen && (
+              <div className="absolute right-0 mt-2 w-56 bg-white border border-primary-100 rounded-xl shadow-xl overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false)
+                    onOpenDetails?.()
+                  }}
+                  className="w-full text-left px-4 py-3 text-sm text-primary-600 hover:bg-primary-50"
+                >
+                  Detalle
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false)
+                    onToggleBot(contact.id, !contact.bot_enabled)
+                  }}
+                  className="w-full text-left px-4 py-3 text-sm text-primary-600 hover:bg-primary-50"
+                >
+                  Asistente IA: {contact.bot_enabled ? 'ON' : 'OFF'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false)
+                    reopenConversation(contact.phone, agent.slug)
+                  }}
+                  className="w-full text-left px-4 py-3 text-sm text-primary-600 hover:bg-primary-50"
+                >
+                  Ventana 24h
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
       {/* Messages */}
       <div 
         ref={scrollRef}
-        className="flex-1 overflow-y-auto p-6 space-y-2"
+        className="flex-1 overflow-y-auto px-3 sm:px-6 py-4 sm:py-6 space-y-2"
       >
         {loading ? (
           <div className="h-full flex items-center justify-center">

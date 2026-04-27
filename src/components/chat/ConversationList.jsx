@@ -1,6 +1,6 @@
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { Check, CheckCheck, Trash2 } from 'lucide-react'
+import { CheckCheck, Trash2 } from 'lucide-react'
 
 export default function ConversationList({ conversations, selectedContactId, onSelect, onDelete, loading }) {
   if (loading) {

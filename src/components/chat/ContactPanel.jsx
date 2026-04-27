@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { User, Phone, Mail, Calendar, Bot, Tag, X, ChevronRight } from 'lucide-react'
+import { Phone, Mail, Tag, X } from 'lucide-react'
 import { useLabels, addLabelToContact, removeLabelFromContact } from '../../hooks/useMessages'
 import Toggle from '../ui/Toggle'
 import toast from 'react-hot-toast'
@@ -25,7 +25,7 @@ export default function ContactPanel({ contact, onClose, onToggleBot }) {
   }
 
   return (
-    <div className="w-80 bg-white border-l border-primary-100 flex flex-col shrink-0 overflow-y-auto animate-slide-right shadow-xl z-20">
+    <div className="w-full sm:w-80 bg-white border-l border-primary-100 flex flex-col shrink-0 overflow-y-auto animate-slide-right shadow-xl z-20">
       <div className="p-6 border-b border-primary-100 flex items-center justify-between">
         <h3 className="font-title text-xl text-primary-600 uppercase tracking-widest">Detalle</h3>
         <button onClick={onClose} className="p-2 text-primary-400 hover:text-primary-600 rounded-lg">
