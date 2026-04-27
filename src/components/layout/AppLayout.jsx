@@ -1,11 +1,35 @@
-import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { MessageSquare, Users, LogOut, Menu, X } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 
 export default function AppLayout() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
+  const LG_MEDIA = '(min-width: 1024px)'
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const mq = window.matchMedia(LG_MEDIA)
+
+    const sync = () => setIsSidebarOpen(mq.matches)
+    sync()
+
+    if (mq.addEventListener) mq.addEventListener('change', sync)
+    else mq.addListener(sync)
+
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener('change', sync)
+      else mq.removeListener(sync)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const mq = window.matchMedia(LG_MEDIA)
+    if (!mq.matches) setIsSidebarOpen(false)
+  }, [location.pathname])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -63,6 +87,16 @@ export default function AppLayout() {
           </button>
         </div>
       </aside>
+
+      {/* Backdrop for Mobile */}
+      {isSidebarOpen && (
+        <button
+          type="button"
+          aria-label="Cerrar menÃº"
+          className="fixed inset-0 z-40 bg-black/35 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
