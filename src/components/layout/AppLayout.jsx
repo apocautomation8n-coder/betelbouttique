@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { MessageSquare, Users, LogOut, Menu, X } from 'lucide-react'
+import { LayoutDashboard, Package, Truck, DollarSign, MessageSquare, Users, LogOut, Menu, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 
@@ -37,6 +37,10 @@ export default function AppLayout() {
   }
 
   const navItems = [
+    { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/productos', icon: Package, label: 'Productos' },
+    { to: '/proveedores', icon: Truck, label: 'Proveedores' },
+    { to: '/finanzas', icon: DollarSign, label: 'Finanzas' },
     { to: '/mensajes', icon: MessageSquare, label: 'Mensajes' },
     { to: '/contactos', icon: Users, label: 'Contactos' },
   ]
@@ -50,16 +54,19 @@ export default function AppLayout() {
         lg:relative lg:translate-x-0
       `}>
         <div className="flex flex-col h-full p-6">
-          <div className="mb-10 text-center">
+          <div className="mb-8 text-center">
             <h1 className="font-logo text-2xl tracking-tighter text-primary-100">
               Betel
             </h1>
             <p className="font-title text-sm uppercase tracking-widest text-primary-200 mt-[-4px]">
               BOUTTIQUE
             </p>
+            <p className="text-[9px] uppercase tracking-[0.3em] text-primary-300 mt-1 font-secondary">
+              Ropa Cristiana ✝️
+            </p>
           </div>
 
-          <nav className="flex-1 space-y-2">
+          <nav className="flex-1 space-y-1.5">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
@@ -78,13 +85,15 @@ export default function AppLayout() {
             ))}
           </nav>
 
-          <button
-            onClick={handleLogout}
-            className="mt-auto flex items-center gap-3 px-4 py-3 text-primary-200 hover:bg-red-500/10 hover:text-red-400 rounded-xl transition-all duration-200"
-          >
-            <LogOut size={20} />
-            <span className="font-secondary uppercase tracking-wider text-xs">Cerrar Sesión</span>
-          </button>
+          <div className="pt-4 border-t border-primary-500/30 mt-4">
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-4 py-3 text-primary-200 hover:bg-red-500/10 hover:text-red-400 rounded-xl transition-all duration-200"
+            >
+              <LogOut size={20} />
+              <span className="font-secondary uppercase tracking-wider text-xs">Cerrar Sesión</span>
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -92,7 +101,7 @@ export default function AppLayout() {
       {isSidebarOpen && (
         <button
           type="button"
-          aria-label="Cerrar menÃº"
+          aria-label="Cerrar menú"
           className="fixed inset-0 z-40 bg-black/35 lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
