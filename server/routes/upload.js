@@ -1,5 +1,6 @@
 import express from 'express'
 import multer from 'multer'
+import FormData from 'form-data'
 
 const router = express.Router()
 
@@ -24,15 +25,18 @@ router.post('/', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'No se envió ningún archivo' })
     }
 
-    const blob = new Blob([req.file.buffer], { type: req.file.mimetype })
-
-    const formData = new FormData()
-    formData.append('reqtype', 'fileupload')
-    formData.append('fileToUpload', blob, req.file.originalname)
+    // Use standard npm form-data package to avoid global FormData/Blob ReferenceErrors in older Node/Vercel environments
+    const form = new FormData()
+    form.append('reqtype', 'fileupload')
+    form.append('fileToUpload', req.file.buffer, {
+      filename: req.file.originalname,
+      contentType: req.file.mimetype
+    })
 
     const response = await fetch('https://catbox.moe/user/api.php', {
       method: 'POST',
-      body: formData
+      body: form.getBuffer(),
+      headers: form.getHeaders()
     })
 
     if (!response.ok) {
