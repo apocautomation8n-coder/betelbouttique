@@ -161,14 +161,40 @@ export default function MediaGallery() {
     if (uploadMode === 'file' && form.file) {
       setUploading(true)
       try {
-        const fd = new FormData()
-        fd.append('file', form.file)
-        const res = await fetch(`${API_BASE}/api/upload`, { method: 'POST', body: fd })
-        if (!res.ok) throw new Error('Error del servidor al subir')
+        // Convert file to Base64 safely on the client-side
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = () => {
+            const result = reader.result
+            const base64Str = result.split(',')[1] // Strip the data URL prefix
+            resolve(base64Str)
+          }
+          reader.onerror = (err) => reject(err)
+          reader.readAsDataURL(form.file)
+        })
+
+        const res = await fetch(`${API_BASE}/api/upload`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            file: base64,
+            filename: form.file.name,
+            mimetype: form.file.type
+          })
+        })
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}))
+          throw new Error(errData.error || 'Error del servidor al subir')
+        }
+
         const data = await res.json()
         await upload({ title: form.title, url: data.url, category: form.category, size: data.size })
         setShowAddModal(false)
         resetForm()
+        toast.success('¡Archivo subido correctamente!')
       } catch (err) {
         toast.error('Error al subir: ' + err.message)
       } finally {
