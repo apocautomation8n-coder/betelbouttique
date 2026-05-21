@@ -127,7 +127,7 @@ export default function Suppliers() {
         </div>
       )}
 
-      <Modal isOpen={showForm} onClose={() => { setShowForm(false); setEditing(null) }} title={editing ? 'Editar Proveedor' : 'Nuevo Proveedor'}>
+      <Modal isOpen={showForm} onClose={() => { setShowForm(false); setEditing(null) }} title={editing ? 'Editar Proveedor' : 'Nuevo Proveedor'} size="lg">
         <SupplierForm supplier={editing} onSubmit={handleSubmit} onCancel={() => { setShowForm(false); setEditing(null) }}
           loading={createSupplier.isPending || updateSupplier.isPending} />
       </Modal>

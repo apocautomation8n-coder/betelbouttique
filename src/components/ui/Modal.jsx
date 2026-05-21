@@ -11,29 +11,32 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' })
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-start justify-center p-4 pt-8 md:pt-16 overflow-y-auto">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-hidden">
       {/* Backdrop */}
       <div 
         className="fixed inset-0 bg-primary-900/40 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
       
-      {/* Content */}
-      <div className={`relative w-full ${sizes[size] || sizes.md} bg-white rounded-2xl shadow-2xl border border-primary-200 animate-fade-in mb-8`}>
-        <div className="sticky top-0 z-10 flex items-center justify-between p-6 border-b border-primary-100 bg-white rounded-t-2xl">
-          <h3 className="font-title text-2xl text-primary-600 uppercase tracking-wider">{title}</h3>
+      {/* Content Container */}
+      <div className={`relative w-full ${sizes[size] || sizes.md} max-h-[90vh] bg-white rounded-3xl shadow-2xl border border-primary-100 animate-fade-in flex flex-col overflow-hidden`}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-primary-100 bg-white shrink-0">
+          <h3 className="font-title text-2xl text-primary-700 uppercase tracking-wider">{title}</h3>
           <button 
             onClick={onClose}
-            className="p-2 text-primary-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all"
+            className="p-2 text-primary-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all"
           >
             <X size={20} />
           </button>
         </div>
         
-        <div className="p-6">
+        {/* Scrollable Body */}
+        <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
           {children}
         </div>
       </div>
     </div>
   )
 }
+
