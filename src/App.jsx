@@ -8,7 +8,6 @@ import Products from './pages/Products'
 import Suppliers from './pages/Suppliers'
 import Finance from './pages/Finance'
 import MediaGallery from './pages/MediaGallery'
-import AiHub from './pages/AiHub'
 import Messages from './pages/Messages'
 import Contacts from './pages/Contacts'
 
@@ -50,7 +49,6 @@ export default function App() {
           <Route path="proveedores" element={<Suppliers />} />
           <Route path="finanzas" element={<Finance />} />
           <Route path="galeria" element={<MediaGallery />} />
-          <Route path="ai-hub" element={<AiHub />} />
           <Route path="mensajes" element={<Messages />} />
           <Route path="contactos" element={<Contacts />} />
         </Route>

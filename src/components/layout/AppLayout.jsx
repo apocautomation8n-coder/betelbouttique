@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Package, Truck, DollarSign, MessageSquare, Users, LogOut, Menu, X, Image as ImageIcon, Sparkles } from 'lucide-react'
+import { LayoutDashboard, Package, Truck, DollarSign, MessageSquare, Users, LogOut, Menu, X, Image as ImageIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 
@@ -42,7 +42,6 @@ export default function AppLayout() {
     { to: '/proveedores', icon: Truck, label: 'Proveedores' },
     { to: '/finanzas', icon: DollarSign, label: 'Finanzas' },
     { to: '/galeria', icon: ImageIcon, label: 'Galería' },
-    { to: '/ai-hub', icon: Sparkles, label: 'AI Hub' },
     { to: '/mensajes', icon: MessageSquare, label: 'Mensajes' },
     { to: '/contactos', icon: Users, label: 'Contactos' },
   ]

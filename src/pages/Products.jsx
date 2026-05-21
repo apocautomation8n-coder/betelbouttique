@@ -10,6 +10,7 @@ export default function Products() {
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [colorFilter, setColorFilter] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState(null)
 
@@ -23,6 +24,21 @@ export default function Products() {
   const createProduct = useCreateProduct()
   const updateProduct = useUpdateProduct()
   const deleteProduct = useDeleteProduct()
+
+  // Extraer colores únicos de las variantes de los productos cargados
+  const uniqueColors = Array.from(
+    new Set(
+      products?.flatMap(p => p.variants?.map(v => v.color?.trim()).filter(Boolean)) || []
+    )
+  ).sort()
+
+  // Filtrar los productos por el color seleccionado
+  const filteredProducts = products?.filter(product => {
+    if (colorFilter) {
+      return product.variants?.some(v => v.color?.toLowerCase().trim() === colorFilter.toLowerCase().trim())
+    }
+    return true
+  })
 
   const handleSubmit = async (data) => {
     if (editing) {
@@ -90,6 +106,14 @@ export default function Products() {
           <option value="inactive">⏸️ Inactivo</option>
           <option value="out_of_stock">❌ Agotado</option>
         </select>
+        <select
+          value={colorFilter}
+          onChange={e => setColorFilter(e.target.value)}
+          className="px-4 py-2.5 bg-white border border-primary-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 text-primary-600"
+        >
+          <option value="">Todos los colores</option>
+          {uniqueColors.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
       </div>
 
       {/* Product Grid */}
@@ -97,17 +121,17 @@ export default function Products() {
         <div className="flex items-center justify-center py-20">
           <div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : products?.length === 0 ? (
+      ) : filteredProducts?.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-primary-300">
           <Package size={48} strokeWidth={1.5} />
-          <p className="mt-3 font-secondary text-sm">No hay productos</p>
+          <p className="mt-3 font-secondary text-sm">No hay productos con estas especificaciones</p>
           <Button className="mt-4" onClick={() => { setEditing(null); setShowForm(true) }}>
             <Plus size={16} /> Crear primer producto
           </Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {products.map(product => (
+          {filteredProducts.map(product => (
             <ProductCard
               key={product.id}
               product={product}

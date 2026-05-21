@@ -55,18 +55,44 @@ export function useTransactions(filters = {}) {
 export function useCreateTransaction() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (transaction) => {
+    mutationFn: async (payload) => {
+      let transactionData = payload
+      let stockUpdate = null
+
+      if (payload.transaction) {
+        transactionData = payload.transaction
+        stockUpdate = payload.variantStockUpdate
+      }
+
       const { data, error } = await supabase
         .from('transactions')
-        .insert(transaction)
+        .insert(transactionData)
         .select()
         .single()
       if (error) throw error
+
+      if (stockUpdate && stockUpdate.variantId && stockUpdate.quantity) {
+        const { data: variant, error: getErr } = await supabase
+          .from('product_variants')
+          .select('stock')
+          .eq('id', stockUpdate.variantId)
+          .single()
+        if (!getErr && variant) {
+          const newStock = Math.max(0, (variant.stock || 0) - stockUpdate.quantity)
+          const { error: updErr } = await supabase
+            .from('product_variants')
+            .update({ stock: newStock })
+            .eq('id', stockUpdate.variantId)
+          if (updErr) throw updErr
+        }
+      }
       return data
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['transactions'] })
       qc.invalidateQueries({ queryKey: ['finance-summary'] })
+      qc.invalidateQueries({ queryKey: ['products'] })
+      qc.invalidateQueries({ queryKey: ['product-stats'] })
       toast.success('Transacción registrada')
     },
     onError: (err) => toast.error('Error: ' + err.message)

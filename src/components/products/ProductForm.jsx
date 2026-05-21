@@ -47,12 +47,14 @@ export default function ProductForm({ product, categories, onSubmit, onCancel, l
     onSubmit({
       product: {
         ...form,
+        category_id: form.category_id || null,
+        sku: form.sku ? form.sku.trim() : null,
         cost_price: Number(form.cost_price) || 0,
         sell_price: Number(form.sell_price) || 0,
       },
       variants: variants.map(v => ({
         size: v.size,
-        color: v.color || null,
+        color: v.color ? v.color.trim() : null,
         stock: Number(v.stock) || 0,
         min_stock: Number(v.min_stock) || 2,
       }))

@@ -93,10 +93,11 @@ export default function ProductCard({ product, onEdit, onDelete }) {
         {product.variants && product.variants.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {product.variants.map(v => (
-              <div key={v.id} className="flex items-center gap-1 text-[10px]">
-                <span className="font-bold text-primary-500 bg-primary-50 px-1.5 py-0.5 rounded">
-                  {v.size}
+              <div key={v.id} className="flex items-center gap-1.5 text-[10px] bg-primary-50 border border-primary-100 rounded-lg px-2 py-0.5">
+                <span className="font-bold text-primary-600">
+                  {v.size}{v.color ? ` - ${v.color}` : ''}
                 </span>
+                <span className="text-primary-300">|</span>
                 <StockBadge stock={v.stock} minStock={v.min_stock} />
               </div>
             ))}
