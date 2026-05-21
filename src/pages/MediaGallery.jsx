@@ -44,15 +44,22 @@ export default function MediaGallery() {
   const [showRightPanel, setShowRightPanel] = useState(true)
   const [copiedId, setCopiedId] = useState(null)
   const [previewImage, setPreviewImage] = useState(null)
+  const [uploading, setUploading] = useState(false)
+  const [dragOver, setDragOver] = useState(false)
+  const [uploadMode, setUploadMode] = useState('file') // file | url
 
   const [form, setForm] = useState({
     title: '',
     url: '',
     category: 'Instagram Feed',
-    size: '1.5 MB'
+    size: '1.5 MB',
+    file: null,
+    filePreview: null
   })
 
   const categories = ['Todas', ...FOLDERS.map(f => f.name)]
+
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
   const handleCopy = (id, url) => {
     navigator.clipboard.writeText(url)
@@ -61,15 +68,59 @@ export default function MediaGallery() {
     setTimeout(() => setCopiedId(null), 2000)
   }
 
+  const handleFileSelect = (file) => {
+    if (!file) return
+    const preview = URL.createObjectURL(file)
+    setForm(p => ({
+      ...p,
+      file,
+      filePreview: preview,
+      title: p.title || file.name,
+      size: file.size >= 1024 * 1024
+        ? (file.size / (1024 * 1024)).toFixed(1) + ' MB'
+        : Math.round(file.size / 1024) + ' KB'
+    }))
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    setDragOver(false)
+    const file = e.dataTransfer.files[0]
+    if (file) handleFileSelect(file)
+  }
+
+  const resetForm = () => {
+    if (form.filePreview) URL.revokeObjectURL(form.filePreview)
+    setForm({ title: '', url: '', category: activeCategory !== 'Todas' ? activeCategory : 'Instagram Feed', size: '1.5 MB', file: null, filePreview: null })
+    setUploadMode('file')
+  }
+
   const handleAdd = async (e) => {
     e.preventDefault()
-    if (!form.title || !form.url) {
-      toast.error('Por favor completa el título y la URL de la imagen')
-      return
+
+    if (uploadMode === 'file' && form.file) {
+      setUploading(true)
+      try {
+        const fd = new FormData()
+        fd.append('file', form.file)
+        const res = await fetch(`${API_BASE}/api/upload`, { method: 'POST', body: fd })
+        if (!res.ok) throw new Error('Error del servidor al subir')
+        const data = await res.json()
+        await upload({ title: form.title, url: data.url, category: form.category, size: data.size })
+        setShowAddModal(false)
+        resetForm()
+      } catch (err) {
+        toast.error('Error al subir: ' + err.message)
+      } finally {
+        setUploading(false)
+      }
+    } else if (uploadMode === 'url' && form.url) {
+      await upload({ title: form.title, url: form.url, category: form.category, size: form.size })
+      setShowAddModal(false)
+      resetForm()
+    } else {
+      toast.error('Seleccioná un archivo o pegá una URL')
     }
-    await upload(form)
-    setShowAddModal(false)
-    setForm({ title: '', url: '', category: activeCategory !== 'Todas' ? activeCategory : 'Instagram Feed', size: '1.5 MB' })
   }
 
   const handleDelete = async (id) => {
@@ -488,8 +539,34 @@ export default function MediaGallery() {
       </div>
 
       {/* Add Image Modal */}
-      <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Cargar Placa / Imagen">
+      <Modal isOpen={showAddModal} onClose={() => { setShowAddModal(false); resetForm() }} title="Cargar Placa / Imagen">
         <form onSubmit={handleAdd} className="space-y-4">
+          {/* Upload Method Tabs */}
+          <div className="flex gap-1.5 p-1 bg-primary-50 rounded-xl border border-primary-100">
+            <button
+              type="button"
+              onClick={() => setUploadMode('file')}
+              className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${
+                uploadMode === 'file'
+                  ? 'bg-white text-primary-800 shadow-sm border border-primary-100'
+                  : 'text-primary-400 hover:text-primary-600'
+              }`}
+            >
+              📁 Subir Archivo
+            </button>
+            <button
+              type="button"
+              onClick={() => setUploadMode('url')}
+              className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${
+                uploadMode === 'url'
+                  ? 'bg-white text-primary-800 shadow-sm border border-primary-100'
+                  : 'text-primary-400 hover:text-primary-600'
+              }`}
+            >
+              🔗 Pegar Enlace URL
+            </button>
+          </div>
+
           <Input 
             label="Nombre de la placa o recurso" 
             value={form.title} 
@@ -497,34 +574,84 @@ export default function MediaGallery() {
             placeholder="Ej: Promo Dia del Padre Feed.png" 
             required 
           />
-          <Input 
-            label="URL de la imagen o diseño" 
-            value={form.url} 
-            onChange={e => setForm(p => ({ ...p, url: e.target.value }))}
-            placeholder="https://images.unsplash.com/..." 
-            required 
-          />
-          <div className="grid grid-cols-2 gap-4">
+
+          {uploadMode === 'file' ? (
             <div>
-              <label className="block text-xs font-bold uppercase tracking-widest text-primary-500 font-secondary ml-1 mb-1.5">Carpeta de Destino</label>
-              <select 
-                value={form.category} 
-                onChange={e => setForm(p => ({ ...p, category: e.target.value }))}
-                className="block w-full px-4 py-2.5 bg-white border border-primary-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 text-primary-600"
+              <label className="block text-xs font-bold uppercase tracking-widest text-primary-500 font-secondary ml-1 mb-1.5">Archivo a Subir</label>
+              <div
+                onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleDrop}
+                className={`relative border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition-all ${
+                  dragOver 
+                    ? 'border-primary-600 bg-primary-50/50' 
+                    : 'border-primary-200 hover:border-primary-300 hover:bg-primary-50/20'
+                }`}
+                onClick={() => document.getElementById('media-file-input').click()}
               >
-                {FOLDERS.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
-              </select>
+                <input
+                  id="media-file-input"
+                  type="file"
+                  accept="image/*,video/*"
+                  onChange={e => handleFileSelect(e.target.files[0])}
+                  className="hidden"
+                />
+                
+                {form.filePreview ? (
+                  <div className="space-y-2 text-center w-full">
+                    <div className="h-32 w-full max-w-xs mx-auto rounded-lg overflow-hidden bg-primary-50 border border-primary-100 flex items-center justify-center">
+                      <img src={form.filePreview} alt="Vista previa" className="max-h-full object-contain" />
+                    </div>
+                    <p className="text-xs text-primary-500 font-semibold truncate max-w-xs mx-auto">{form.file?.name}</p>
+                    <span className="text-[10px] text-primary-400 font-bold block">{form.size}</span>
+                  </div>
+                ) : (
+                  <div className="text-center space-y-2">
+                    <div className="p-3 bg-primary-50 rounded-full text-primary-400 w-fit mx-auto">
+                      <Plus size={24} />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-primary-600">Haz clic para elegir un archivo o arrástralo aquí</p>
+                      <p className="text-[10px] text-primary-400 font-medium mt-0.5">Soporta imágenes y videos de hasta 200MB</p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-            <Input 
-              label="Peso estimado" 
-              value={form.size} 
-              onChange={e => setForm(p => ({ ...p, size: e.target.value }))}
-              placeholder="Ej: 1.5 MB" 
-            />
+          ) : (
+            <>
+              <Input 
+                label="URL de la imagen o diseño" 
+                value={form.url} 
+                onChange={e => setForm(p => ({ ...p, url: e.target.value }))}
+                placeholder="https://images.unsplash.com/..." 
+                required 
+              />
+              <Input 
+                label="Peso estimado" 
+                value={form.size} 
+                onChange={e => setForm(p => ({ ...p, size: e.target.value }))}
+                placeholder="Ej: 1.5 MB" 
+              />
+            </>
+          )}
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-widest text-primary-500 font-secondary ml-1 mb-1.5">Carpeta de Destino</label>
+            <select 
+              value={form.category} 
+              onChange={e => setForm(p => ({ ...p, category: e.target.value }))}
+              className="block w-full px-4 py-2.5 bg-white border border-primary-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 text-primary-600"
+            >
+              {FOLDERS.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+            </select>
           </div>
+
           <div className="flex items-center gap-3 pt-3">
-            <Button type="submit">Cargar Archivo</Button>
-            <Button variant="secondary" onClick={() => setShowAddModal(false)}>Cancelar</Button>
+            <Button type="submit" loading={uploading}>
+              {uploading ? 'Subiendo...' : 'Cargar Archivo'}
+            </Button>
+            <Button variant="secondary" onClick={() => { setShowAddModal(false); resetForm() }} disabled={uploading}>Cancelar</Button>
           </div>
         </form>
       </Modal>
