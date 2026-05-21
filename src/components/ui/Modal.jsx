@@ -19,7 +19,10 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' })
       />
       
       {/* Content Container */}
-      <div className={`relative w-full ${sizes[size] || sizes.md} max-h-[90vh] bg-white rounded-3xl shadow-2xl border border-primary-100 animate-fade-in flex flex-col overflow-hidden`}>
+      <div 
+        className={`relative w-full ${sizes[size] || sizes.md} bg-white rounded-3xl shadow-2xl border border-primary-100 animate-fade-in flex flex-col overflow-hidden`}
+        style={{ maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-primary-100 bg-white shrink-0">
           <h3 className="font-title text-2xl text-primary-700 uppercase tracking-wider">{title}</h3>
@@ -32,7 +35,10 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' })
         </div>
         
         {/* Scrollable Body */}
-        <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
+        <div 
+          className="p-6 overflow-y-auto flex-1 custom-scrollbar"
+          style={{ overflowY: 'auto', flex: '1 1 auto' }}
+        >
           {children}
         </div>
       </div>
