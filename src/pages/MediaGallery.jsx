@@ -61,6 +61,60 @@ export default function MediaGallery() {
 
   const API_BASE = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:3001' : '')
 
+  const compressImage = (file) => {
+    return new Promise((resolve) => {
+      if (!file.type.startsWith('image/') || file.type === 'image/svg+xml') {
+        resolve(file)
+        return
+      }
+
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const img = new Image()
+        img.onload = () => {
+          const canvas = document.createElement('canvas')
+          let width = img.width
+          let height = img.height
+
+          const MAX_DIM = 1600 // High-quality resolution limit
+          if (width > MAX_DIM || height > MAX_DIM) {
+            if (width > height) {
+              height = Math.round((height * MAX_DIM) / width)
+              width = MAX_DIM
+            } else {
+              width = Math.round((width * MAX_DIM) / height)
+              height = MAX_DIM
+            }
+          }
+
+          canvas.width = width
+          canvas.height = height
+
+          const ctx = canvas.getContext('2d')
+          ctx.drawImage(img, 0, 0, width, height)
+
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                resolve(file)
+                return
+              }
+              const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+                type: 'image/jpeg',
+                lastModified: Date.now()
+              })
+              resolve(compressedFile)
+            },
+            'image/jpeg',
+            0.75 // 75% quality offers incredible compression with zero visual quality loss
+          )
+        }
+        img.src = e.target.result
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
   const handleCopy = (id, url) => {
     navigator.clipboard.writeText(url)
     setCopiedId(id)
@@ -68,17 +122,23 @@ export default function MediaGallery() {
     setTimeout(() => setCopiedId(null), 2000)
   }
 
-  const handleFileSelect = (file) => {
+  const handleFileSelect = async (file) => {
     if (!file) return
-    const preview = URL.createObjectURL(file)
+    
+    // Automatically compress high resolution pictures to stay perfectly below Vercel's size limits
+    toast.loading('Optimizando imagen...', { id: 'img-compressing' })
+    const processedFile = await compressImage(file)
+    toast.dismiss('img-compressing')
+
+    const preview = URL.createObjectURL(processedFile)
     setForm(p => ({
       ...p,
-      file,
+      file: processedFile,
       filePreview: preview,
       title: p.title || file.name,
-      size: file.size >= 1024 * 1024
-        ? (file.size / (1024 * 1024)).toFixed(1) + ' MB'
-        : Math.round(file.size / 1024) + ' KB'
+      size: processedFile.size >= 1024 * 1024
+        ? (processedFile.size / (1024 * 1024)).toFixed(1) + ' MB'
+        : Math.round(processedFile.size / 1024) + ' KB'
     }))
   }
 

@@ -1,6 +1,7 @@
 import express from 'express'
 import multer from 'multer'
 import FormData from 'form-data'
+import https from 'https'
 
 const router = express.Router()
 
@@ -18,14 +19,14 @@ const upload = multer({
   }
 })
 
-// POST /api/upload — Upload a file to catbox.moe and return a permanent URL
+// POST /api/upload — Upload a file to catbox.moe using Node's native https module for absolute serverless compatibility
 router.post('/', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No se envió ningún archivo' })
     }
 
-    // Use standard npm form-data package to avoid global FormData/Blob ReferenceErrors in older Node/Vercel environments
+    // Build standard npm form-data payload
     const form = new FormData()
     form.append('reqtype', 'fileupload')
     form.append('fileToUpload', req.file.buffer, {
@@ -33,33 +34,49 @@ router.post('/', upload.single('file'), async (req, res) => {
       contentType: req.file.mimetype
     })
 
-    const response = await fetch('https://catbox.moe/user/api.php', {
+    const options = {
+      hostname: 'catbox.moe',
+      path: '/user/api.php',
       method: 'POST',
-      body: form.getBuffer(),
       headers: form.getHeaders()
-    })
-
-    if (!response.ok) {
-      throw new Error(`Catbox respondió con estado ${response.status}`)
     }
 
-    const url = (await response.text()).trim()
+    // Use native Node https stream request to guarantee compatibility with all serverless setups
+    const request = https.request(options, (response) => {
+      let body = ''
+      response.on('data', (chunk) => {
+        body += chunk
+      })
+      response.on('end', () => {
+        const url = body.trim()
+        if (response.statusCode === 200 && url.startsWith('http')) {
+          const fileSizeKB = req.file.size / 1024
+          const fileSizeStr = fileSizeKB >= 1024
+            ? (fileSizeKB / 1024).toFixed(1) + ' MB'
+            : Math.round(fileSizeKB) + ' KB'
 
-    if (!url.startsWith('http')) {
-      throw new Error('Respuesta inesperada de catbox: ' + url)
-    }
-
-    const fileSizeKB = req.file.size / 1024
-    const fileSizeStr = fileSizeKB >= 1024
-      ? (fileSizeKB / 1024).toFixed(1) + ' MB'
-      : Math.round(fileSizeKB) + ' KB'
-
-    res.json({
-      url,
-      originalName: req.file.originalname,
-      size: fileSizeStr,
-      mimeType: req.file.mimetype
+          res.json({
+            url,
+            originalName: req.file.originalname,
+            size: fileSizeStr,
+            mimeType: req.file.mimetype
+          })
+        } else {
+          console.error('Error de subida externa. Status:', response.statusCode, 'Body:', url)
+          res.status(500).json({ error: 'El servidor externo falló con respuesta: ' + url })
+        }
+      })
     })
+
+    request.on('error', (err) => {
+      console.error('Error de red en https request:', err)
+      res.status(500).json({ error: 'Error de red con el host externo: ' + err.message })
+    })
+
+    // Write form buffer to request stream
+    request.write(form.getBuffer())
+    request.end()
+
   } catch (err) {
     console.error('Error al subir archivo:', err)
     res.status(500).json({ error: err.message || 'Error interno al subir el archivo' })
