@@ -29,10 +29,10 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-primary-100 px-4">
       <div className="max-w-md w-full space-y-8 p-10 bg-white rounded-2xl shadow-xl border border-primary-200 animate-fade-in">
         <div className="text-center">
-          <h1 className="font-logo text-4xl text-primary-600 tracking-tighter">
+          <h1 className="font-logo text-5xl text-primary-600 tracking-tight font-black leading-none">
             Betel
           </h1>
-          <p className="font-title text-xl text-primary-500 uppercase tracking-widest mt-[-8px]">
+          <p className="font-secondary text-sm text-primary-400 uppercase tracking-[0.35em] mt-1">
             BOUTTIQUE
           </p>
           <h2 className="mt-6 text-sm font-secondary text-primary-500 uppercase tracking-widest">

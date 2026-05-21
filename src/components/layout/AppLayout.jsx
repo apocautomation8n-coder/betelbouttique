@@ -56,17 +56,12 @@ export default function AppLayout() {
       `}>
         <div className="flex flex-col h-full p-6">
           <div className="mb-8 flex flex-col items-center">
-            {/* Elegant Premium SVG Logo Emblem */}
-            <div className="w-12 h-12 mb-3 bg-gradient-to-tr from-accent-500 to-accent-600 rounded-xl flex items-center justify-center shadow-lg shadow-accent-600/20 ring-4 ring-primary-700">
-              <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2v20M5 9h14M12 2C7 2 5 6 5 9c0 5 7 11 7 11s7-6 7-11c0-3-2-7-7-7z" />
-              </svg>
-            </div>
-            <h1 className="font-logo text-xl tracking-[0.2em] font-black text-primary-100 uppercase">
+            {/* Logo — Text only matching brand identity */}
+            <h1 className="font-logo text-3xl font-black text-primary-100 tracking-tight leading-none">
               Betel
             </h1>
-            <p className="font-secondary text-[8px] uppercase tracking-[0.4em] text-accent-100 font-bold mt-0.5">
-              BOUTIQUE PREMIUM
+            <p className="font-secondary text-[9px] uppercase tracking-[0.35em] text-primary-300 font-medium mt-1">
+              BOUTTIQUE
             </p>
           </div>
 
