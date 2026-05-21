@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Package, AlertTriangle, DollarSign, TrendingUp, ShoppingBag, Truck, ArrowUpRight, ArrowDownRight } from 'lucide-react'
+import { Package, AlertTriangle, DollarSign, TrendingUp, ShoppingBag, Truck, ArrowUpRight, ArrowDownRight, Target } from 'lucide-react'
 import StatCard from '../components/dashboard/StatCard'
 import { useProductStats } from '../hooks/useProducts'
 import { useFinanceSummary, useYearlySummary } from '../hooks/useFinance'
@@ -16,7 +16,13 @@ export default function Dashboard() {
   const { data: suppliers } = useSuppliers()
   const { data: yearlyData } = useYearlySummary(year)
 
-  const stats = productStats || { total: 0, active: 0, lowStock: 0, totalValue: 0 }
+  const cashRegister = (() => {
+    if (typeof window === 'undefined') return 0
+    const saved = localStorage.getItem('betel_cash_register')
+    return saved ? Number(saved) : 0
+  })()
+
+  const stats = productStats || { total: 0, active: 0, lowStock: 0, totalValue: 0, totalStockUnits: 0 }
 
   // Max value for chart scaling
   const maxVal = yearlyData
@@ -35,13 +41,7 @@ export default function Dashboard() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="glass rounded-xl px-4 py-2 text-sm text-primary-500 font-secondary flex items-center gap-1.5 shadow-sm">
-            💵 <span className="font-bold text-emerald-700">En Caja:</span> {formatARSCompact(
-              (() => {
-                if (typeof window === 'undefined') return 0
-                const saved = localStorage.getItem('betel_cash_register')
-                return saved ? Number(saved) : 0
-              })()
-            )}
+            💵 <span className="font-bold text-emerald-700">Caja:</span> {formatARSCompact(cashRegister)}
           </div>
           <div className="glass rounded-xl px-4 py-2 text-sm text-primary-500 font-secondary shadow-sm">
             ✝️ <span className="font-bold text-primary-700">Ropa Cristiana</span>
@@ -81,7 +81,7 @@ export default function Dashboard() {
       </div>
 
       {/* Second row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Profit Card */}
         <div className={`rounded-2xl p-6 border shadow-sm ${
           summary.profit >= 0
@@ -125,6 +125,24 @@ export default function Dashboard() {
           </p>
           <p className="text-xs text-primary-400 mt-2 font-secondary">
             Valorado a precio de venta
+          </p>
+        </div>
+
+        {/* Total Proyectado */}
+        <div className="bg-gradient-to-br from-violet-50 to-violet-100/50 rounded-2xl p-6 border border-violet-200 shadow-sm">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="bg-violet-600 p-2.5 rounded-xl">
+              <Target size={20} className="text-white" />
+            </div>
+            <span className="text-xs font-bold uppercase tracking-widest text-violet-600 font-secondary">
+              Total Proyectado
+            </span>
+          </div>
+          <p className="font-title text-4xl tracking-wide text-violet-800">
+            {formatARSCompact(cashRegister + stats.totalValue)}
+          </p>
+          <p className="text-xs text-violet-500 mt-2 font-secondary">
+            Caja + valor total de stock
           </p>
         </div>
 
