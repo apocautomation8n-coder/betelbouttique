@@ -39,11 +39,20 @@ router.post('/', async (req, res) => {
       contentType: mimetype
     })
 
+    const payload = form.getBuffer()
+    
+    // CRITICAL: We must include the Content-Length header, otherwise Nginx/Cloudflare or target hosts
+    // will close the request with a 411 Length Required or 500 status.
+    const headers = {
+      ...form.getHeaders(),
+      'Content-Length': payload.length
+    }
+
     const options = {
       hostname: 'catbox.moe',
       path: '/user/api.php',
       method: 'POST',
-      headers: form.getHeaders()
+      headers: headers
     }
 
     // Use native Node https stream request to guarantee compatibility with all serverless setups
@@ -68,7 +77,7 @@ router.post('/', async (req, res) => {
           })
         } else {
           console.error('Error de subida externa. Status:', response.statusCode, 'Body:', url)
-          res.status(500).json({ error: 'El servidor externo falló con respuesta: ' + url })
+          res.status(500).json({ error: `El servidor externo falló con código ${response.statusCode}: ${url}` })
         }
       })
     })
@@ -79,7 +88,7 @@ router.post('/', async (req, res) => {
     })
 
     // Write form buffer to request stream
-    request.write(form.getBuffer())
+    request.write(payload)
     request.end()
 
   } catch (err) {
