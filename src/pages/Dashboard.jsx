@@ -33,17 +33,28 @@ export default function Dashboard() {
             {getMonthName(month)} {year} — Betel Boutique
           </p>
         </div>
-        <div className="glass rounded-xl px-4 py-2 text-sm text-primary-500 font-secondary">
-          ✝️ <span className="font-bold text-primary-700">Ropa Cristiana</span> — Todo en ARS $
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="glass rounded-xl px-4 py-2 text-sm text-primary-500 font-secondary flex items-center gap-1.5 shadow-sm">
+            💵 <span className="font-bold text-emerald-700">En Caja:</span> {formatARSCompact(
+              (() => {
+                if (typeof window === 'undefined') return 0
+                const saved = localStorage.getItem('betel_cash_register')
+                return saved ? Number(saved) : 0
+              })()
+            )}
+          </div>
+          <div className="glass rounded-xl px-4 py-2 text-sm text-primary-500 font-secondary shadow-sm">
+            ✝️ <span className="font-bold text-primary-700">Ropa Cristiana</span>
+          </div>
         </div>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Productos"
-          value={stats.total}
-          subtitle={`${stats.active} activos`}
+          title="Stock Total (Unid.)"
+          value={stats.totalStockUnits || 0}
+          subtitle={`${stats.total} productos (${stats.active} act.)`}
           icon={Package}
           color="primary"
         />

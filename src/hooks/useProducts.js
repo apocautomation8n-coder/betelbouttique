@@ -175,15 +175,17 @@ export function useProductStats() {
         .from('products')
         .select('id, status, sell_price, cost_price, variants:product_variants(stock, min_stock)')
 
-      if (!products) return { total: 0, active: 0, lowStock: 0, totalValue: 0 }
+      if (!products) return { total: 0, active: 0, lowStock: 0, totalValue: 0, totalStockUnits: 0 }
 
       let lowStock = 0
       let totalValue = 0
+      let totalStockUnits = 0
 
       products.forEach(p => {
         if (p.variants) {
           p.variants.forEach(v => {
             totalValue += (v.stock || 0) * (p.sell_price || 0)
+            totalStockUnits += (v.stock || 0)
             if (v.stock <= v.min_stock) lowStock++
           })
         }
@@ -193,7 +195,8 @@ export function useProductStats() {
         total: products.length,
         active: products.filter(p => p.status === 'active').length,
         lowStock,
-        totalValue
+        totalValue,
+        totalStockUnits
       }
     }
   })

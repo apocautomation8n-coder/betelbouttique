@@ -22,6 +22,20 @@ export default function Finance() {
   const [tab, setTab] = useState('all') // all | income | expense
   const [showForm, setShowForm] = useState(null) // null | 'income' | 'expense'
 
+  const [cashRegister, setCashRegister] = useState(() => {
+    if (typeof window === 'undefined') return 0
+    const saved = localStorage.getItem('betel_cash_register')
+    return saved ? Number(saved) : 0
+  })
+  const [isEditingCash, setIsEditingCash] = useState(false)
+  const [tempCash, setTempCash] = useState('')
+
+  const handleSaveCashRegister = (val) => {
+    const num = Number(val) || 0
+    setCashRegister(num)
+    localStorage.setItem('betel_cash_register', num.toString())
+  }
+
   const { start, end } = useMemo(() => getMonthRange(year, month), [year, month])
   const { data: transactions, isLoading } = useTransactions({ type: tab === 'all' ? undefined : tab, start, end })
   const { data: categories } = useTransactionCategories()
@@ -72,7 +86,38 @@ export default function Finance() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-gradient-to-br from-amber-50 to-amber-100/50 rounded-2xl p-5 border border-amber-200">
+          <div className="flex items-center gap-2 mb-1">
+            <DollarSign size={16} className="text-amber-600" />
+            <span className="text-xs font-bold uppercase tracking-widest text-amber-600 font-secondary">Efectivo en Caja</span>
+          </div>
+          {isEditingCash ? (
+            <input
+              type="number"
+              value={tempCash}
+              onChange={e => setTempCash(e.target.value)}
+              onBlur={() => { handleSaveCashRegister(tempCash); setIsEditingCash(false) }}
+              onKeyDown={e => { if (e.key === 'Enter') { handleSaveCashRegister(tempCash); setIsEditingCash(false) } }}
+              className="w-full px-2 py-1 bg-white border border-amber-300 rounded font-title text-2xl text-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-500 font-bold"
+              autoFocus
+              placeholder="0.00"
+            />
+          ) : (
+            <div 
+              onClick={() => { setTempCash(cashRegister.toString()); setIsEditingCash(true) }} 
+              className="group/cash cursor-pointer flex items-baseline justify-between"
+              title="Click para editar efectivo en caja"
+            >
+              <p className="font-title text-3xl text-amber-700 tracking-wide font-bold">
+                {formatARSCompact(cashRegister)}
+              </p>
+              <span className="text-[10px] text-amber-400 group-hover/cash:text-amber-600 transition-colors font-bold uppercase tracking-wider">
+                ✍️ Editar
+              </span>
+            </div>
+          )}
+        </div>
         <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 rounded-2xl p-5 border border-emerald-200">
           <div className="flex items-center gap-2 mb-1">
             <TrendingUp size={16} className="text-emerald-600" />
