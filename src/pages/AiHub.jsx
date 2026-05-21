@@ -1,44 +1,50 @@
 import { useState, useEffect } from 'react'
-import { Sparkles, Compass, Copy, Check, MessageSquare, Image, Share2, FileText, ChevronRight, ArrowLeft, ArrowRight, RotateCw, Home, Search, SquareArrowOutUpRight, MonitorPlay } from 'lucide-react'
+import { Sparkles, Compass, Copy, Check, MessageSquare, Image, Share2, FileText, ChevronRight, ArrowLeft, ArrowRight, RotateCw, Home, Search, SquareArrowOutUpRight, Info } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Button from '../components/ui/Button'
 
 const AI_PLATFORMS = [
   { 
-    name: 'Google', 
-    url: 'https://google.com', 
-    icon: '🔍',
-    description: 'Buscador de Google para realizar búsquedas rápidas e investigación.'
+    name: 'Buscador Libre (DuckDuckGo)', 
+    url: 'https://html.duckduckgo.com/html', 
+    icon: '🦆',
+    description: 'Buscador 100% integrado dentro de la app sin bloqueos de seguridad.',
+    embeddable: true
+  },
+  { 
+    name: 'Wikipedia', 
+    url: 'https://es.wikipedia.org', 
+    icon: '📖',
+    description: 'Enciclopedia libre totalmente integrable.',
+    embeddable: true
   },
   { 
     name: 'ChatGPT', 
     url: 'https://chatgpt.com', 
     icon: '🧠',
-    description: 'Generador de copys, atención y redacción rápida.'
+    description: 'Generador de copys y redacción (Requiere ventana dedicada o extensión).',
+    embeddable: false
   },
   { 
     name: 'Claude AI', 
     url: 'https://claude.ai', 
     icon: '🔮',
-    description: 'Análisis financiero, redacción larga y estratégica.'
+    description: 'Análisis financiero y redacción larga (Requiere ventana dedicada o extensión).',
+    embeddable: false
   },
   { 
     name: 'Gemini', 
     url: 'https://gemini.google.com', 
     icon: '✨',
-    description: 'Investigación de tendencias y marketing.'
-  },
-  { 
-    name: 'v0 by Vercel', 
-    url: 'https://v0.dev', 
-    icon: '💻',
-    description: 'Generador de código e interfaces web.'
+    description: 'Investigación de tendencias de Google (Requiere ventana dedicada o extensión).',
+    embeddable: false
   },
   { 
     name: 'Pinterest', 
     url: 'https://pinterest.com', 
     icon: '📌',
-    description: 'Tableros de inspiración para prendas.'
+    description: 'Tableros de inspiración para prendas (Requiere ventana dedicada).',
+    embeddable: false
   }
 ]
 
@@ -74,13 +80,13 @@ const PROMPT_TEMPLATES = [
 ]
 
 export default function AiHub() {
-  const [currentUrl, setCurrentUrl] = useState('https://google.com')
-  const [urlInput, setUrlInput] = useState('https://google.com')
+  const [currentUrl, setCurrentUrl] = useState('https://html.duckduckgo.com/html')
+  const [urlInput, setUrlInput] = useState('https://html.duckduckgo.com/html')
   const [selectedPrompt, setSelectedPrompt] = useState(PROMPT_TEMPLATES[0])
   const [copied, setCopied] = useState(false)
   const [notes, setNotes] = useState('')
   const [showHelper, setShowHelper] = useState(true)
-  const [viewMode, setViewMode] = useState('dedicated') // 'dedicated' o 'iframe'
+  const [viewMode, setViewMode] = useState('iframe') // Default to iframe for 100% inside experience
   
   const [inputs, setInputs] = useState({
     title: 'Buzo Hoodie Grace',
@@ -99,7 +105,6 @@ export default function AiHub() {
     localStorage.setItem('betel_ai_hub_notes', val)
   }
 
-  // Helper to open popups safely and neatly
   const openDedicatedWindow = (url, name = 'WebBrowser') => {
     const width = 1000
     const height = 800
@@ -111,16 +116,21 @@ export default function AiHub() {
       name.replace(/[^a-zA-Z0-9]/g, ''),
       `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes`
     )
-    toast.success(`Abriendo ${name} en ventana de navegación dedicada`)
+    toast.success(`Abriendo ${name} en ventana dedicada`)
   }
 
   const navigateToUrl = (e) => {
     e.preventDefault()
     let url = urlInput.trim()
     
-    // If it's a search query instead of a URL, search it on Google
+    // Check if it's a search term or a URL
     if (!url.includes('.') || url.includes(' ')) {
-      url = `https://www.google.com/search?q=${encodeURIComponent(url)}`
+      // If inside iframe, use DuckDuckGo HTML search which works perfectly inside!
+      if (viewMode === 'iframe') {
+        url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(url)}`
+      } else {
+        url = `https://www.google.com/search?q=${encodeURIComponent(url)}`
+      }
     } else if (!/^https?:\/\//i.test(url)) {
       url = 'https://' + url
     }
@@ -138,6 +148,24 @@ export default function AiHub() {
     setUrlInput(p.url)
     if (viewMode === 'dedicated') {
       openDedicatedWindow(p.url, p.name)
+    } else {
+      // If we are in iframe mode but select a non-embeddable site, warn elegantly
+      if (!p.embeddable) {
+        toast((t) => (
+          <span className="text-xs">
+            ⚠️ <b>{p.name}</b> bloquea iframes. Se abrirá en ventana dedicada para evitar errores.
+            <button 
+              onClick={() => {
+                openDedicatedWindow(p.url, p.name)
+                toast.dismiss(t.id)
+              }}
+              className="ml-2 bg-primary-600 text-white px-2 py-0.5 rounded font-bold"
+            >
+              Abrir
+            </button>
+          </span>
+        ), { duration: 5000 })
+      }
     }
   }
 
@@ -169,24 +197,14 @@ export default function AiHub() {
     <div className="flex flex-col h-[calc(100vh-56px)] lg:h-screen overflow-hidden bg-primary-50">
       
       {/* Dynamic Warning Alert banner */}
-      <div className="bg-primary-900 border-b border-primary-950 text-primary-100 px-4 py-3 text-xs flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-md z-10 shrink-0">
+      <div className="bg-primary-900 border-b border-primary-950 text-primary-100 px-4 py-3.5 text-xs flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-md z-10 shrink-0">
         <div className="flex items-center gap-2">
-          <span className="text-sm">🌐</span>
+          <Info size={14} className="text-accent-400 shrink-0" />
           <span>
-            <span className="font-bold text-accent-400">Navegador Integrado Activo:</span> ¡Puedes escribir cualquier web o buscar en la barra de arriba! Google y las IAs se abren sin bloqueos en el modo ventana dedicada.
+            <span className="font-bold text-accent-400">¿Por qué bloquea Google/ChatGPT?</span> Chrome no permite incrustar webs privadas dentro de otras webs por seguridad (anti-hackeos). <b>DuckDuckGo y Wikipedia sí funcionan 100% adentro.</b>
           </span>
         </div>
         <div className="flex items-center gap-3">
-          <button 
-            onClick={() => setViewMode('dedicated')}
-            className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase transition-all ${
-              viewMode === 'dedicated' 
-                ? 'bg-accent-500 text-primary-950 shadow' 
-                : 'bg-primary-800 text-primary-300 hover:bg-primary-700'
-            }`}
-          >
-            🚀 Ventana Dedicada (Recomendado - Sin Bloqueos)
-          </button>
           <button 
             onClick={() => setViewMode('iframe')}
             className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase transition-all ${
@@ -195,7 +213,17 @@ export default function AiHub() {
                 : 'bg-primary-800 text-primary-300 hover:bg-primary-700'
             }`}
           >
-            🌐 Modo Integrado (Iframe)
+            🌐 100% Adentro (DuckDuckGo / Wiki)
+          </button>
+          <button 
+            onClick={() => setViewMode('dedicated')}
+            className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase transition-all ${
+              viewMode === 'dedicated' 
+                ? 'bg-accent-500 text-primary-950 shadow' 
+                : 'bg-primary-800 text-primary-300 hover:bg-primary-700'
+            }`}
+          >
+            🚀 Ventanas Dedicadas (Para Google / ChatGPT)
           </button>
         </div>
       </div>
@@ -247,7 +275,7 @@ export default function AiHub() {
                 type="text"
                 value={urlInput}
                 onChange={e => setUrlInput(e.target.value)}
-                placeholder="Escribe una URL (ej: google.com) o escribe tu búsqueda y presiona Enter..."
+                placeholder={viewMode === 'iframe' ? "Escribe un término de búsqueda (ej: remeras) o una web..." : "Escribe una URL o busca en Google..."}
                 className="w-full bg-white border border-primary-200 rounded-xl pl-8 pr-4 py-1.5 text-xs text-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent font-mono shadow-inner"
               />
               <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-400" />
@@ -296,7 +324,7 @@ export default function AiHub() {
                 <div>
                   <h3 className="font-title text-2xl text-primary-800">Modo Ventana Dedicada Activo</h3>
                   <p className="text-sm text-primary-400 font-secondary mt-2">
-                    ¡Escribe cualquier término de búsqueda en la barra de arriba y presiona **Enter**! Se abrirá instantáneamente una ventana de Google limpia, sin pestañas, ideal para buscar referencias sin salir de tu marca.
+                    Las webs como Google, ChatGPT y Claude se abrirán en una ventana flotante limpia, dedicada y sin pestañas, ideal para interactuar sin bloqueos de seguridad.
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-3 w-full">
