@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabaseClient'
 import toast from 'react-hot-toast'
 
-// Default media item mocks for initial content
+// Default media items mock for initial content
 const DEFAULT_MEDIA = [
   {
     id: 'm1',
@@ -41,10 +41,18 @@ const DEFAULT_MEDIA = [
 export function useMedia() {
   const qc = useQueryClient()
 
-  // We read from Supabase, but fallback to LocalStorage/Default mocks if table doesn't exist yet
+  const getDeletedDefaults = () => {
+    if (typeof window === 'undefined') return []
+    const saved = localStorage.getItem('betel_deleted_media_ids')
+    return saved ? JSON.parse(saved) : []
+  }
+
   const query = useQuery({
     queryKey: ['media'],
     queryFn: async () => {
+      const deletedIds = getDeletedDefaults()
+      const activeDefaults = DEFAULT_MEDIA.filter(item => !deletedIds.includes(item.id))
+
       try {
         const { data, error } = await supabase
           .from('media_library')
@@ -52,15 +60,25 @@ export function useMedia() {
           .order('created_at', { ascending: false })
 
         if (error) throw error
-        return data.length > 0 ? data : DEFAULT_MEDIA
+        
+        // Merge database items with non-deleted mock defaults
+        const dbIds = new Set(data.map(item => item.id))
+        const filteredDefaults = activeDefaults.filter(item => !dbIds.has(item.id))
+        return [...data, ...filteredDefaults]
       } catch (err) {
         console.warn('Usando base de datos local para la galería de imágenes:', err.message)
         const local = localStorage.getItem('betel_media_library')
+        
+        let items = []
         if (local) {
-          return JSON.parse(local)
+          items = JSON.parse(local)
+        } else {
+          items = [...DEFAULT_MEDIA]
+          localStorage.setItem('betel_media_library', JSON.stringify(DEFAULT_MEDIA))
         }
-        localStorage.setItem('betel_media_library', JSON.stringify(DEFAULT_MEDIA))
-        return DEFAULT_MEDIA
+
+        // Filter out deleted defaults
+        return items.filter(item => !deletedIds.includes(item.id))
       }
     }
   })
@@ -68,7 +86,6 @@ export function useMedia() {
   const uploadMutation = useMutation({
     mutationFn: async (newItem) => {
       try {
-        // Try inserting into Supabase
         const { data, error } = await supabase
           .from('media_library')
           .insert(newItem)
@@ -78,7 +95,6 @@ export function useMedia() {
         if (error) throw error
         return data
       } catch (err) {
-        // Local fallback
         const local = localStorage.getItem('betel_media_library')
         const items = local ? JSON.parse(local) : [...DEFAULT_MEDIA]
         const createdItem = {
@@ -100,6 +116,14 @@ export function useMedia() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
+      // If it is a default item (id starting with 'm'), record it as deleted
+      if (id.startsWith('m')) {
+        const deleted = getDeletedDefaults()
+        if (!deleted.includes(id)) {
+          localStorage.setItem('betel_deleted_media_ids', JSON.stringify([...deleted, id]))
+        }
+      }
+
       try {
         const { error } = await supabase
           .from('media_library')
