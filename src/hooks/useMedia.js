@@ -6,34 +6,34 @@ import toast from 'react-hot-toast'
 const DEFAULT_MEDIA = [
   {
     id: 'm1',
-    title: 'Remera Fe - Beige Oversize',
+    title: 'Post de Instagram — Nueva Temporada.jpg',
     url: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80',
     size: '1.2 MB',
-    category: 'Remeras',
+    category: 'Instagram Feed',
     created_at: new Date().toISOString()
   },
   {
     id: 'm2',
-    title: 'Buzo Hoodie Grace - Negro',
+    title: 'Story de Instagram — Oferta Invierno.png',
     url: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&w=800&q=80',
     size: '2.4 MB',
-    category: 'Buzos',
+    category: 'Instagram Stories',
     created_at: new Date().toISOString()
   },
   {
     id: 'm3',
-    title: 'Gorra Cross Faith - Premium',
+    title: 'Facebook Ads — Promo 20 Off.jpg',
     url: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?auto=format&fit=crop&w=800&q=80',
     size: '850 KB',
-    category: 'Gorras',
+    category: 'Facebook & Meta Ads',
     created_at: new Date().toISOString()
   },
   {
     id: 'm4',
-    title: 'Banner Lanzamiento Colección Invierno',
+    title: 'Banner Web — Envío Gratis.jpg',
     url: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=800&q=80',
     size: '4.1 MB',
-    category: 'Banners',
+    category: 'Banners Web',
     created_at: new Date().toISOString()
   }
 ]
