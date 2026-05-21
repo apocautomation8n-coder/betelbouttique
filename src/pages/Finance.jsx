@@ -52,12 +52,38 @@ export default function Finance() {
 
   const handleSubmit = async (data) => {
     await createTx.mutateAsync(data)
+    
+    // Sumar al saldo de Caja si es ingreso, o restar si es egreso
+    const tx = data.transaction || data
+    const amt = Number(tx.amount) || 0
+    let newBalance = cashRegister
+    if (tx.type === 'income') {
+      newBalance += amt
+    } else if (tx.type === 'expense') {
+      newBalance = Math.max(0, newBalance - amt)
+    }
+    
+    setCashRegister(newBalance)
+    localStorage.setItem('betel_cash_register', newBalance.toString())
+    
     setShowForm(null)
   }
 
   const handleDelete = async (id) => {
     if (confirm('¿Eliminar esta transacción?')) {
+      const tx = transactions?.find(t => t.id === id)
       await deleteTx.mutateAsync(id)
+      if (tx) {
+        const amt = Number(tx.amount) || 0
+        let newBalance = cashRegister
+        if (tx.type === 'income') {
+          newBalance = Math.max(0, newBalance - amt)
+        } else if (tx.type === 'expense') {
+          newBalance += amt
+        }
+        setCashRegister(newBalance)
+        localStorage.setItem('betel_cash_register', newBalance.toString())
+      }
     }
   }
 
@@ -90,7 +116,7 @@ export default function Finance() {
         <div className="bg-gradient-to-br from-amber-50 to-amber-100/50 rounded-2xl p-5 border border-amber-200">
           <div className="flex items-center gap-2 mb-1">
             <DollarSign size={16} className="text-amber-600" />
-            <span className="text-xs font-bold uppercase tracking-widest text-amber-600 font-secondary">Efectivo en Caja</span>
+            <span className="text-xs font-bold uppercase tracking-widest text-amber-600 font-secondary">Caja</span>
           </div>
           {isEditingCash ? (
             <input
@@ -107,7 +133,7 @@ export default function Finance() {
             <div 
               onClick={() => { setTempCash(cashRegister.toString()); setIsEditingCash(true) }} 
               className="group/cash cursor-pointer flex items-baseline justify-between"
-              title="Click para editar efectivo en caja"
+              title="Click para editar caja"
             >
               <p className="font-title text-3xl text-amber-700 tracking-wide font-bold">
                 {formatARSCompact(cashRegister)}
