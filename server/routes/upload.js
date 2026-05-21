@@ -1,10 +1,9 @@
 import express from 'express'
-import FormData from 'form-data'
-import https from 'https'
+import supabaseAdmin from '../supabaseAdmin.js'
 
 const router = express.Router()
 
-// POST /api/upload — Upload a base64 encoded file to catbox.moe
+// POST /api/upload — Upload a base64 encoded file directly to Supabase Storage
 router.post('/', async (req, res) => {
   try {
     // Robust parsing in case middleware parsed body as raw text
@@ -31,65 +30,49 @@ router.post('/', async (req, res) => {
     // Convert Base64 back to raw binary Buffer
     const buffer = Buffer.from(file, 'base64')
 
-    // Build standard npm form-data payload
-    const form = new FormData()
-    form.append('reqtype', 'fileupload')
-    form.append('fileToUpload', buffer, {
-      filename: filename,
-      contentType: mimetype
-    })
+    // Define standard public bucket name
+    const bucketName = 'media-gallery'
 
-    const payload = form.getBuffer()
-    
-    // CRITICAL: We must include the Content-Length header, otherwise Nginx/Cloudflare or target hosts
-    // will close the request with a 411 Length Required or 500 status.
-    const headers = {
-      ...form.getHeaders(),
-      'Content-Length': payload.length
+    // Ensure the bucket exists and is public (runs on backend with admin privileges)
+    try {
+      await supabaseAdmin.storage.createBucket(bucketName, {
+        public: true,
+        fileSizeLimit: 20 * 1024 * 1024 // 20MB limit
+      })
+    } catch (bucketErr) {
+      // Bucket might already exist, which is the expected case
     }
 
-    const options = {
-      hostname: 'catbox.moe',
-      path: '/user/api.php',
-      method: 'POST',
-      headers: headers
+    // Upload the file buffer to Supabase Storage
+    const uniqueName = `${Date.now()}_${filename.replace(/\s+/g, '_')}`
+    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+      .from(bucketName)
+      .upload(uniqueName, buffer, {
+        contentType: mimetype,
+        upsert: true
+      })
+
+    if (uploadError) {
+      console.error('Error al subir a Supabase Storage:', uploadError)
+      throw new Error(`Supabase Storage falló: ${uploadError.message}`)
     }
 
-    // Use native Node https stream request to guarantee compatibility with all serverless setups
-    const request = https.request(options, (response) => {
-      let body = ''
-      response.on('data', (chunk) => {
-        body += chunk
-      })
-      response.on('end', () => {
-        const url = body.trim()
-        if (response.statusCode === 200 && url.startsWith('http')) {
-          const fileSizeKB = buffer.length / 1024
-          const fileSizeStr = fileSizeKB >= 1024
-            ? (fileSizeKB / 1024).toFixed(1) + ' MB'
-            : Math.round(fileSizeKB) + ' KB'
+    // Retrieve the permanent direct public URL
+    const { data: { publicUrl } } = supabaseAdmin.storage
+      .from(bucketName)
+      .getPublicUrl(uniqueName)
 
-          res.json({
-            url,
-            originalName: filename,
-            size: fileSizeStr,
-            mimeType: mimetype
-          })
-        } else {
-          console.error('Error de subida externa. Status:', response.statusCode, 'Body:', url)
-          res.status(500).json({ error: `El servidor externo falló con código ${response.statusCode}: ${url}` })
-        }
-      })
+    const fileSizeKB = buffer.length / 1024
+    const fileSizeStr = fileSizeKB >= 1024
+      ? (fileSizeKB / 1024).toFixed(1) + ' MB'
+      : Math.round(fileSizeKB) + ' KB'
+
+    res.json({
+      url: publicUrl,
+      originalName: filename,
+      size: fileSizeStr,
+      mimeType: mimetype
     })
-
-    request.on('error', (err) => {
-      console.error('Error de red en https request:', err)
-      res.status(500).json({ error: 'Error de red con el host externo: ' + err.message })
-    })
-
-    // Write form buffer to request stream
-    request.write(payload)
-    request.end()
 
   } catch (err) {
     console.error('Error al subir archivo:', err)
