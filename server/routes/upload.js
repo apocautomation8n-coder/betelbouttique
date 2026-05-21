@@ -7,7 +7,17 @@ const router = express.Router()
 // POST /api/upload — Upload a base64 encoded file to catbox.moe
 router.post('/', async (req, res) => {
   try {
-    const { file, filename, mimetype } = req.body
+    // Robust parsing in case middleware parsed body as raw text
+    let data = req.body
+    if (typeof data === 'string') {
+      try {
+        data = JSON.parse(data)
+      } catch (e) {
+        return res.status(400).json({ error: 'JSON malformado en el cuerpo de la petición' })
+      }
+    }
+
+    const { file, filename, mimetype } = data || {}
 
     if (!file || !filename || !mimetype) {
       return res.status(400).json({ error: 'Faltan parámetros requeridos (file, filename, mimetype)' })
