@@ -1,9 +1,15 @@
 import { useState, useEffect } from 'react'
-import { Sparkles, Compass, Copy, Check, MessageSquare, Image, Share2, FileText, ChevronRight, ArrowLeft, ArrowRight, RotateCw, Home, HelpCircle, SquareArrowOutUpRight, MonitorPlay } from 'lucide-react'
+import { Sparkles, Compass, Copy, Check, MessageSquare, Image, Share2, FileText, ChevronRight, ArrowLeft, ArrowRight, RotateCw, Home, Search, SquareArrowOutUpRight, MonitorPlay } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Button from '../components/ui/Button'
 
 const AI_PLATFORMS = [
+  { 
+    name: 'Google', 
+    url: 'https://google.com', 
+    icon: '🔍',
+    description: 'Buscador de Google para realizar búsquedas rápidas e investigación.'
+  },
   { 
     name: 'ChatGPT', 
     url: 'https://chatgpt.com', 
@@ -21,12 +27,6 @@ const AI_PLATFORMS = [
     url: 'https://gemini.google.com', 
     icon: '✨',
     description: 'Investigación de tendencias y marketing.'
-  },
-  { 
-    name: 'Midjourney', 
-    url: 'https://midjourney.com', 
-    icon: '🎨',
-    description: 'Creación de estampados y maquetas visuales.'
   },
   { 
     name: 'v0 by Vercel', 
@@ -74,8 +74,8 @@ const PROMPT_TEMPLATES = [
 ]
 
 export default function AiHub() {
-  const [currentUrl, setCurrentUrl] = useState('https://chatgpt.com')
-  const [urlInput, setUrlInput] = useState('https://chatgpt.com')
+  const [currentUrl, setCurrentUrl] = useState('https://google.com')
+  const [urlInput, setUrlInput] = useState('https://google.com')
   const [selectedPrompt, setSelectedPrompt] = useState(PROMPT_TEMPLATES[0])
   const [copied, setCopied] = useState(false)
   const [notes, setNotes] = useState('')
@@ -99,29 +99,38 @@ export default function AiHub() {
     localStorage.setItem('betel_ai_hub_notes', val)
   }
 
-  const navigateToUrl = (e) => {
-    e.preventDefault()
-    let url = urlInput.trim()
-    if (!/^https?:\/\//i.test(url)) {
-      url = 'https://' + url
-    }
-    setCurrentUrl(url)
-    setUrlInput(url)
-  }
-
-  // Opens the site in a dedicated "App Window" (Popup without Chrome clutter/tabs)
-  const openDedicatedWindow = (url, name) => {
-    const width = 950
-    const height = 750
+  // Helper to open popups safely and neatly
+  const openDedicatedWindow = (url, name = 'WebBrowser') => {
+    const width = 1000
+    const height = 800
     const left = (window.screen.width - width) / 2
     const top = (window.screen.height - height) / 2
     
     window.open(
       url,
-      name.replace(/\s+/g, ''),
+      name.replace(/[^a-zA-Z0-9]/g, ''),
       `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes`
     )
-    toast.success(`Abriendo ${name} en ventana dedicada limpia`)
+    toast.success(`Abriendo ${name} en ventana de navegación dedicada`)
+  }
+
+  const navigateToUrl = (e) => {
+    e.preventDefault()
+    let url = urlInput.trim()
+    
+    // If it's a search query instead of a URL, search it on Google
+    if (!url.includes('.') || url.includes(' ')) {
+      url = `https://www.google.com/search?q=${encodeURIComponent(url)}`
+    } else if (!/^https?:\/\//i.test(url)) {
+      url = 'https://' + url
+    }
+
+    setCurrentUrl(url)
+    setUrlInput(url)
+
+    if (viewMode === 'dedicated') {
+      openDedicatedWindow(url, 'NavegadorWeb')
+    }
   }
 
   const selectPlatform = (p) => {
@@ -162,9 +171,9 @@ export default function AiHub() {
       {/* Dynamic Warning Alert banner */}
       <div className="bg-primary-900 border-b border-primary-950 text-primary-100 px-4 py-3 text-xs flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-md z-10 shrink-0">
         <div className="flex items-center gap-2">
-          <span className="text-sm">⚠️</span>
+          <span className="text-sm">🌐</span>
           <span>
-            <span className="font-bold text-accent-400">Seguridad del Navegador (CSP):</span> Los sitios como ChatGPT y Claude bloquean por seguridad cargarse dentro de pantallas compartidas tradicionales.
+            <span className="font-bold text-accent-400">Navegador Integrado Activo:</span> ¡Puedes escribir cualquier web o buscar en la barra de arriba! Google y las IAs se abren sin bloqueos en el modo ventana dedicada.
           </span>
         </div>
         <div className="flex items-center gap-3">
@@ -176,7 +185,7 @@ export default function AiHub() {
                 : 'bg-primary-800 text-primary-300 hover:bg-primary-700'
             }`}
           >
-            🚀 Ventana Dedicada (Recomendado - Sin Pestañas)
+            🚀 Ventana Dedicada (Recomendado - Sin Bloqueos)
           </button>
           <button 
             onClick={() => setViewMode('iframe')}
@@ -204,7 +213,7 @@ export default function AiHub() {
               <button 
                 onClick={() => selectPlatform(AI_PLATFORMS[0])} 
                 className="p-1.5 hover:bg-primary-200/60 rounded-lg text-primary-500 transition-colors" 
-                title="Volver a ChatGPT"
+                title="Volver a Inicio"
               >
                 <ArrowLeft size={16} />
               </button>
@@ -232,15 +241,16 @@ export default function AiHub() {
               </button>
             </div>
 
-            {/* Address Bar */}
+            {/* Address Bar / Google Search */}
             <form onSubmit={navigateToUrl} className="flex-1 relative">
               <input
                 type="text"
                 value={urlInput}
                 onChange={e => setUrlInput(e.target.value)}
+                placeholder="Escribe una URL (ej: google.com) o escribe tu búsqueda y presiona Enter..."
                 className="w-full bg-white border border-primary-200 rounded-xl pl-8 pr-4 py-1.5 text-xs text-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent font-mono shadow-inner"
               />
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs">🔒</span>
+              <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-400" />
             </form>
 
             {/* Helper Toggle */}
@@ -286,7 +296,7 @@ export default function AiHub() {
                 <div>
                   <h3 className="font-title text-2xl text-primary-800">Modo Ventana Dedicada Activo</h3>
                   <p className="text-sm text-primary-400 font-secondary mt-2">
-                    Para evitar los bloqueos de seguridad de Google y OpenAI, abrimos cada herramienta en una **ventana flotante dedicada sin barra de pestañas**, logrando un espacio ultra limpio como una app de escritorio.
+                    ¡Escribe cualquier término de búsqueda en la barra de arriba y presiona **Enter**! Se abrirá instantáneamente una ventana de Google limpia, sin pestañas, ideal para buscar referencias sin salir de tu marca.
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-3 w-full">
