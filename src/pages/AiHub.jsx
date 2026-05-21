@@ -1,15 +1,45 @@
 import { useState, useEffect } from 'react'
-import { Sparkles, Compass, Copy, Check, MessageSquare, Image, Share2, FileText, ChevronRight, ArrowLeft, ArrowRight, RotateCw, Home, HelpCircle } from 'lucide-react'
+import { Sparkles, Compass, Copy, Check, MessageSquare, Image, Share2, FileText, ChevronRight, ArrowLeft, ArrowRight, RotateCw, Home, HelpCircle, SquareArrowOutUpRight, MonitorPlay } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Button from '../components/ui/Button'
 
 const AI_PLATFORMS = [
-  { name: 'ChatGPT', url: 'https://chatgpt.com', icon: '🧠' },
-  { name: 'Claude AI', url: 'https://claude.ai', icon: '🔮' },
-  { name: 'Gemini', url: 'https://gemini.google.com', icon: '✨' },
-  { name: 'Midjourney', url: 'https://midjourney.com', icon: '🎨' },
-  { name: 'v0 by Vercel', url: 'https://v0.dev', icon: '💻' },
-  { name: 'Pinterest', url: 'https://pinterest.com', icon: '📌' }
+  { 
+    name: 'ChatGPT', 
+    url: 'https://chatgpt.com', 
+    icon: '🧠',
+    description: 'Generador de copys, atención y redacción rápida.'
+  },
+  { 
+    name: 'Claude AI', 
+    url: 'https://claude.ai', 
+    icon: '🔮',
+    description: 'Análisis financiero, redacción larga y estratégica.'
+  },
+  { 
+    name: 'Gemini', 
+    url: 'https://gemini.google.com', 
+    icon: '✨',
+    description: 'Investigación de tendencias y marketing.'
+  },
+  { 
+    name: 'Midjourney', 
+    url: 'https://midjourney.com', 
+    icon: '🎨',
+    description: 'Creación de estampados y maquetas visuales.'
+  },
+  { 
+    name: 'v0 by Vercel', 
+    url: 'https://v0.dev', 
+    icon: '💻',
+    description: 'Generador de código e interfaces web.'
+  },
+  { 
+    name: 'Pinterest', 
+    url: 'https://pinterest.com', 
+    icon: '📌',
+    description: 'Tableros de inspiración para prendas.'
+  }
 ]
 
 const PROMPT_TEMPLATES = [
@@ -50,6 +80,7 @@ export default function AiHub() {
   const [copied, setCopied] = useState(false)
   const [notes, setNotes] = useState('')
   const [showHelper, setShowHelper] = useState(true)
+  const [viewMode, setViewMode] = useState('dedicated') // 'dedicated' o 'iframe'
   
   const [inputs, setInputs] = useState({
     title: 'Buzo Hoodie Grace',
@@ -78,9 +109,27 @@ export default function AiHub() {
     setUrlInput(url)
   }
 
-  const selectPlatform = (url) => {
-    setCurrentUrl(url)
-    setUrlInput(url)
+  // Opens the site in a dedicated "App Window" (Popup without Chrome clutter/tabs)
+  const openDedicatedWindow = (url, name) => {
+    const width = 950
+    const height = 750
+    const left = (window.screen.width - width) / 2
+    const top = (window.screen.height - height) / 2
+    
+    window.open(
+      url,
+      name.replace(/\s+/g, ''),
+      `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes`
+    )
+    toast.success(`Abriendo ${name} en ventana dedicada limpia`)
+  }
+
+  const selectPlatform = (p) => {
+    setCurrentUrl(p.url)
+    setUrlInput(p.url)
+    if (viewMode === 'dedicated') {
+      openDedicatedWindow(p.url, p.name)
+    }
   }
 
   const handleCopy = () => {
@@ -110,31 +159,36 @@ export default function AiHub() {
   return (
     <div className="flex flex-col h-[calc(100vh-56px)] lg:h-screen overflow-hidden bg-primary-50">
       
-      {/* Top Banner / Extension Help */}
-      <div className="bg-gradient-to-r from-accent-600 to-amber-600 text-white px-4 py-2 text-xs flex items-center justify-between shadow-md z-10 shrink-0">
-        <div className="flex items-center gap-2 truncate">
-          <Sparkles size={14} className="text-accent-100 animate-pulse shrink-0" />
-          <span className="truncate">
-            <span className="font-bold">💡 Tip Pro para visualización directa:</span> Para usar ChatGPT, Claude y Gemini integrados sin bloqueos, instala la extensión de Chrome 
-            <a 
-              href="https://chromewebstore.google.com/detail/ignore-x-frame-headers/gleekbnehedocjjpglalokgiedlllhoc" 
-              target="_blank" 
-              rel="noreferrer" 
-              className="underline font-black mx-1 hover:text-accent-100"
-            >
-              Ignore X-Frame-Headers
-            </a> 
-            y recarga la página.
+      {/* Dynamic Warning Alert banner */}
+      <div className="bg-primary-900 border-b border-primary-950 text-primary-100 px-4 py-3 text-xs flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-md z-10 shrink-0">
+        <div className="flex items-center gap-2">
+          <span className="text-sm">⚠️</span>
+          <span>
+            <span className="font-bold text-accent-400">Seguridad del Navegador (CSP):</span> Los sitios como ChatGPT y Claude bloquean por seguridad cargarse dentro de pantallas compartidas tradicionales.
           </span>
         </div>
-        <a 
-          href="https://chromewebstore.google.com/detail/ignore-x-frame-headers/gleekbnehedocjjpglalokgiedlllhoc" 
-          target="_blank" 
-          rel="noreferrer" 
-          className="ml-4 shrink-0 bg-white/20 hover:bg-white/35 font-bold px-2 py-0.5 rounded transition-all"
-        >
-          Instalar Extensión 🚀
-        </a>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setViewMode('dedicated')}
+            className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase transition-all ${
+              viewMode === 'dedicated' 
+                ? 'bg-accent-500 text-primary-950 shadow' 
+                : 'bg-primary-800 text-primary-300 hover:bg-primary-700'
+            }`}
+          >
+            🚀 Ventana Dedicada (Recomendado - Sin Pestañas)
+          </button>
+          <button 
+            onClick={() => setViewMode('iframe')}
+            className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase transition-all ${
+              viewMode === 'iframe' 
+                ? 'bg-accent-500 text-primary-950 shadow' 
+                : 'bg-primary-800 text-primary-300 hover:bg-primary-700'
+            }`}
+          >
+            🌐 Modo Integrado (Iframe)
+          </button>
+        </div>
       </div>
 
       {/* Main Workspace split screen */}
@@ -148,7 +202,7 @@ export default function AiHub() {
             {/* Nav controls */}
             <div className="flex items-center gap-1">
               <button 
-                onClick={() => selectPlatform('https://chatgpt.com')} 
+                onClick={() => selectPlatform(AI_PLATFORMS[0])} 
                 className="p-1.5 hover:bg-primary-200/60 rounded-lg text-primary-500 transition-colors" 
                 title="Volver a ChatGPT"
               >
@@ -160,15 +214,17 @@ export default function AiHub() {
               >
                 <ArrowRight size={16} />
               </button>
+              {viewMode === 'iframe' && (
+                <button 
+                  onClick={reloadIframe} 
+                  className="p-1.5 hover:bg-primary-200/60 rounded-lg text-primary-500 transition-colors" 
+                  title="Recargar"
+                >
+                  <RotateCw size={14} />
+                </button>
+              )}
               <button 
-                onClick={reloadIframe} 
-                className="p-1.5 hover:bg-primary-200/60 rounded-lg text-primary-500 transition-colors" 
-                title="Recargar"
-              >
-                <RotateCw size={14} />
-              </button>
-              <button 
-                onClick={() => selectPlatform('https://chatgpt.com')} 
+                onClick={() => selectPlatform(AI_PLATFORMS[0])} 
                 className="p-1.5 hover:bg-primary-200/60 rounded-lg text-primary-500 transition-colors" 
                 title="Inicio"
               >
@@ -206,7 +262,7 @@ export default function AiHub() {
             {AI_PLATFORMS.map(p => (
               <button
                 key={p.name}
-                onClick={() => selectPlatform(p.url)}
+                onClick={() => selectPlatform(p)}
                 className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
                   currentUrl === p.url 
                     ? 'bg-white text-primary-700 border border-primary-200 shadow-sm' 
@@ -219,15 +275,51 @@ export default function AiHub() {
             ))}
           </div>
 
-          {/* Literal Iframe Browser Window */}
-          <div className="flex-1 w-full bg-primary-100/30 relative">
-            <iframe
-              id="chrome-iframe"
-              src={currentUrl}
-              className="w-full h-full border-none bg-white"
-              title="Chrome Integrado"
-              allow="clipboard-write; clipboard-read; microphone; camera"
-            />
+          {/* Browser Viewport */}
+          <div className="flex-1 w-full bg-primary-50 relative flex flex-col">
+            {viewMode === 'dedicated' ? (
+              /* Dedicated Window Launchpad */
+              <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-6 max-w-xl mx-auto">
+                <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center text-3xl shadow-sm border border-primary-200">
+                  🚀
+                </div>
+                <div>
+                  <h3 className="font-title text-2xl text-primary-800">Modo Ventana Dedicada Activo</h3>
+                  <p className="text-sm text-primary-400 font-secondary mt-2">
+                    Para evitar los bloqueos de seguridad de Google y OpenAI, abrimos cada herramienta en una **ventana flotante dedicada sin barra de pestañas**, logrando un espacio ultra limpio como una app de escritorio.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-3 w-full">
+                  {AI_PLATFORMS.map(p => (
+                    <button
+                      key={p.name}
+                      onClick={() => openDedicatedWindow(p.url, p.name)}
+                      className="p-4 bg-white border border-primary-100 rounded-2xl hover:border-primary-400 hover:shadow-md transition-all text-left flex items-start gap-3 group"
+                    >
+                      <span className="text-2xl mt-0.5">{p.icon}</span>
+                      <div className="min-w-0">
+                        <div className="font-bold text-xs text-primary-700 flex items-center gap-1">
+                          {p.name}
+                          <SquareArrowOutUpRight size={10} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                        <p className="text-[10px] text-primary-400 leading-tight mt-0.5 line-clamp-2">{p.description}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              /* Built-in Iframe Browser Window */
+              <div className="flex-1 w-full h-full relative">
+                <iframe
+                  id="chrome-iframe"
+                  src={currentUrl}
+                  className="w-full h-full border-none bg-white"
+                  title="Chrome Integrado"
+                  allow="clipboard-write; clipboard-read; microphone; camera"
+                />
+              </div>
+            )}
           </div>
         </div>
 
@@ -258,12 +350,12 @@ export default function AiHub() {
                     }}
                     className={`p-2 rounded-xl border text-left transition-all duration-200 ${
                       selectedPrompt.id === t.id
-                        ? 'border-primary-600 bg-primary-50/50 shadow-sm text-primary-800'
-                        : 'border-primary-100 hover:bg-primary-50/20 text-primary-500'
+                        ? 'border-primary-600 bg-primary-50/50 shadow-sm'
+                        : 'border-primary-100 hover:bg-primary-50/20'
                     }`}
                   >
-                    <h4 className="font-bold text-[10px] truncate">{t.title}</h4>
-                    <span className="text-[8px] font-bold opacity-60 uppercase tracking-widest block mt-0.5">{t.category}</span>
+                    <h4 className="font-bold text-[10px] truncate text-primary-700">{t.title}</h4>
+                    <span className="text-[8px] font-bold text-primary-400 uppercase tracking-widest block mt-0.5">{t.category}</span>
                   </button>
                 ))}
               </div>
