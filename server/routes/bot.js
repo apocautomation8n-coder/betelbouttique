@@ -5,8 +5,16 @@ const router = express.Router()
 
 router.post('/check-stock', async (req, res) => {
   try {
-    const { talle, tipo_prenda, prenda_especifica } = req.body
-
+    let body = req.body
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body)
+      } catch (e) {
+        return res.status(400).json({ error: 'Invalid JSON body' })
+      }
+    }
+    
+    const { talle, tipo_prenda, prenda_especifica } = body
     if (!talle) {
       return res.status(400).json({ error: 'El talle es requerido' })
     }
