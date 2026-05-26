@@ -5,6 +5,7 @@ import messagesRouter from './routes/messages.js'
 import agentsRouter from './routes/agents.js'
 import contactsRouter from './routes/contacts.js'
 import uploadRouter from './routes/upload.js'
+import botRouter from './routes/bot.js'
 
 dotenv.config()
 
@@ -20,6 +21,7 @@ app.use('/api/messages', messagesRouter)
 app.use('/api/agents', agentsRouter)
 app.use('/api/contacts', contactsRouter)
 app.use('/api/upload', uploadRouter)
+app.use('/api/bot', botRouter)
 
 // Health check
 app.get('/api/health', (req, res) => {
